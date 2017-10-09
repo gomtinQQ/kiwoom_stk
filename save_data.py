@@ -104,7 +104,6 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)
 
     daily_data = DailyData()
-    
     daily_data.save_all_data()
 
     import glob
