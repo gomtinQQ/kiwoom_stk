@@ -25,7 +25,7 @@ def update_version():
 
     # Account : id은 이미 지정되어 있으므로, id password, 공인인증서 password 을 지정을 한다.
     account = []
-    with open("account.txt", 'r') as f:
+    with open("../data/account.txt", 'r') as f:
         account = f.readlines()
 
     # split the newline
