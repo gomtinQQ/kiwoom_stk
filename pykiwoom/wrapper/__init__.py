@@ -106,6 +106,7 @@ class KiwoomWrapper:
 
 if __name__ == '__main__':
     from pykiwoom.kiwoom import Kiwoom
+
     kiwoom = Kiwoom()
     kiwoom_wrapper = KiwoomWrapper(kiwoom)
     kiwoom_wrapper.get_data_opt10081('000660', "20161231")

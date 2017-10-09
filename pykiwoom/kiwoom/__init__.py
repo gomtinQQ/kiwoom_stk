@@ -1013,8 +1013,6 @@ class Kiwoom(QAxWidget):
         self.data_opw00001 = 0
         self.data_opw00018 = {'account_evaluation': [], 'stocks': []}
 
-
-
 class ParameterTypeError(Exception):
     """ 파라미터 타입이 일치하지 않을 경우 발생하는 예외 """
 
@@ -1024,7 +1022,6 @@ class ParameterTypeError(Exception):
     def __str__(self):
         return self.msg
 
-
 class ParameterValueError(Exception):
     """ 파라미터로 사용할 수 없는 값을 사용할 경우 발생하는 예외 """
 
@@ -1033,7 +1030,6 @@ class ParameterValueError(Exception):
 
     def __str__(self):
         return self.msg
-
 
 class KiwoomProcessingError(Exception):
     """ 키움에서 처리실패에 관련된 리턴코드를 받았을 경우 발생하는 예외 """
@@ -1047,7 +1043,6 @@ class KiwoomProcessingError(Exception):
     def __repr__(self):
         return self.msg
 
-
 class KiwoomConnectError(Exception):
     """ 키움서버에 로그인 상태가 아닐 경우 발생하는 예외 """
 
@@ -1056,7 +1051,6 @@ class KiwoomConnectError(Exception):
 
     def __str__(self):
         return self.msg
-
 
 class ReturnCode(object):
     """ 키움 OpenApi+ 함수들이 반환하는 값 """
@@ -1124,7 +1118,6 @@ class ReturnCode(object):
         -500: '종목코드없음'
     }
 
-
 class FidList(object):
     """ receiveChejanData() 이벤트 메서드로 전달되는 FID 목록 """
 
@@ -1187,7 +1180,6 @@ class FidList(object):
         305: '상한가',
         306: '하한가'
     }
-
 
 class RealType(object):
     REALTYPE = {
@@ -1416,7 +1408,6 @@ class RealType(object):
         }
     }
 
-
 def test_to_get_account():
     kiwoom.set_input_value("계좌번호", "8086919011")
     kiwoom.set_input_value("비밀번호", "0000")
@@ -1430,7 +1421,6 @@ def test_to_get_account():
     print(kiwoom.data_opw00018['account_evaluation'])
     print(kiwoom.data_opw00018['stocks'])
 
-
 def test_to_get_opt10081():
     kiwoom.set_input_value("종목코드", "035420")
     kiwoom.set_input_value("기준일자", "20170101")
@@ -1443,7 +1433,6 @@ def test_to_get_opt10081():
         kiwoom.set_input_value("수정주가구분", 1)
         kiwoom.comm_rq_data("주식일봉차트조회요청", "opt10081", 2, "0101")
 
-
 def test_to_get_opt10086():
     kiwoom.set_input_value("종목코드", "035420")
     kiwoom.set_input_value("조회일자", "20170101")
@@ -1455,7 +1444,6 @@ def test_to_get_opt10086():
         kiwoom.set_input_value("조회일자", "20170101")
         kiwoom.set_input_value("표시구분", 1)
         kiwoom.comm_rq_data("일별주가요청", "opt10086", 2, "0101")
-
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
