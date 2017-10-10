@@ -15,35 +15,37 @@ def click_kiwoom_pop():
     재접속 안내 pop-up창이 뜨면, 확인 버튼을 눌러 준다.
     :return:
     """
-    try:
-        app = application.Application()
-        win = findwin.find_window(title=u"[HTS 재접속 안내]")
 
-        kiwoomapp = app.connect(handle = win)
-        kiwoomdlg = kiwoomapp.window(title=u"[HTS 재접속 안내]")
-        kiwoomdlg.child_window(title="확인").click()
-        print("___ Pop-up found ___")
-    except:
-        print("Pop-up was not found")
-        pass
-
-def find_procs_by_name(name):
-    "Return a list of processes matching 'name'."
-    assert name, name
-    ls = []
-    for p in psutil.process_iter():
-        name_, exe, cmdline = "", "", []
+    listtitle = [u"[HTS 재접속 안내]", u"안녕하세요. 키움증권 입니다.", u"KHOpenAPI", u"KHOpenAPI" ]
+    for wintitle in listtitle :
         try:
-            name_ = p.name()
+            app = application.Application()
+            win = findwin.find_window(title=wintitle)
+            time.sleep(600)
+            kiwoomapp = app.connect(handle = win)
+            kiwoomdlg = kiwoomapp.window(title=wintitle)
+            kiwoomdlg.child_window(title="확인").click()
+            print("___ Pop-up found ___")
+        except:
+            print("Pop-up was not found: %s"%wintitle )
+            pass
+
+def find_procs_id_by_name_param(pname, param):
+    "Return a list of processes matching 'name'."
+
+    for p in psutil.process_iter():
+        name, exe, cmdline = "", "", []
+        try:
+            name = p.name()
             cmdline = p.cmdline()
             exe = p.exe()
         except (psutil.AccessDenied, psutil.ZombieProcess):
             pass
         except psutil.NoSuchProcess:
             continue
-        if name == name_ or cmdline[0] == name or os.path.basename(exe) == name:
-            ls.append(name)
-    return ls
+        if pname == name and  param in  cmdline[0] :
+            return p.pid
+    return 0
 
 
 if __name__ == "__main__" :
