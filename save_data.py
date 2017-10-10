@@ -36,8 +36,10 @@ class DailyData:
         return False
 
     def save_all_data(self):
-        today = datetime.date.today().strftime("%Y%m%d")
-        # today = datetime.date(2017,9,28).strftime("%Y%m%d")
+        # today = datetime.date.today().strftime("%Y%m%d")
+
+        # 일단 2017.10.9일 까지만 모두 저장한다. 이후 다시 update 한다.
+        today = datetime.date(2017,10,9).strftime("%Y%m%d")
         print(today)
 
         # load code list from account

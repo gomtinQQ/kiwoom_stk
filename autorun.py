@@ -3,6 +3,9 @@
 #Author : jaehyek Choi
 #---------------------------------------------------------
 
+# 다음을 설치하자.
+# pip install pywinauto
+
 # 각 control에 대한 이름을 알고 싶으면, 다음을 참조.
 # https://github.com/pywinauto/SWAPY/releases
 # https://github.com/jaehyek/gui-inspect-tool
