@@ -2,6 +2,7 @@
 import pandas as pd
 import sqlite3
 import glob
+import time
 
 def test_dataframe_replace():
     a = pd.DataFrame([{'a': '20170102', 'b': '--10', 'c': '+20'}, {'a': '20170103', 'b': '--20', 'c': '--20'}])
@@ -84,4 +85,6 @@ def read_h5():
         print(data.head())
 
 if __name__ == '__main__':
-    read_h5()
+    for i in range(5000):
+        print("index = %s"%i )
+        time.sleep(2)

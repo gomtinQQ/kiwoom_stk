@@ -15,46 +15,70 @@ def click_kiwoom_pop():
     재접속 안내 pop-up창이 뜨면, 확인 버튼을 눌러 준다.
     :return:
     """
-
-    listtitle = [u"[HTS 재접속 안내]", u"안녕하세요. 키움증권 입니다.", u"KHOpenAPI", u"KHOpenAPI" ]
+    found = False
+    listtitle = [u"[HTS 재접속 안내]", u"안녕하세요. 키움증권 입니다.", u"KHOpenAPI"]
     for wintitle in listtitle :
         try:
             app = application.Application()
             win = findwin.find_window(title=wintitle)
-            time.sleep(600)
             kiwoomapp = app.connect(handle = win)
-            kiwoomdlg = kiwoomapp.window(title=wintitle)
-            kiwoomdlg.child_window(title="확인").click()
-            print("___ Pop-up found ___")
+            kiwoomspec = kiwoomapp.window(title=wintitle)
+            kiwoomspec.child_window(title="확인").click()
+            print("Pop-up found : %s"%wintitle )
+            found = True
         except:
-            print("Pop-up was not found: %s"%wintitle )
             pass
+    return found
 
-def find_procs_id_by_name_param(pname, param):
-    "Return a list of processes matching 'name'."
+def find_procs_id_by_pname_param(pname, param):
+    """
+    program, param으로 해당하는 process의 ID을 리턴한다.
+    :param pname: program이름
+    :param param: parameter
+    :return: pid
+    """
 
     for p in psutil.process_iter():
-        name, exe, cmdline = "", "", []
         try:
-            name = p.name()
-            cmdline = p.cmdline()
-            exe = p.exe()
+            listcmdline = p.cmdline()
+            if len(listcmdline) >= 2 and "python" in listcmdline[0] and param in listcmdline[1]:
+                return p.pid
         except (psutil.AccessDenied, psutil.ZombieProcess):
-            pass
+            continue
         except psutil.NoSuchProcess:
             continue
-        if pname == name and  param in  cmdline[0] :
-            return p.pid
     return 0
+
+def insert_command_on_cmdline(wintitle, strcmd):
+    strcmd = strcmd + "\n"
+
+    try:
+        app = application.Application()
+        win = findwin.find_window(title=wintitle)
+        cmdapp = app.connect(handle=win)
+        cmdspec = cmdapp.window(title=wintitle)
+        cmdspec.wrapper_object().send_chars(strcmd)
+    except Exception as e :
+        print(e)
+        pass
 
 
 if __name__ == "__main__" :
-    while(True) :
-        listprocessname = [p.name() for p in psutil.process_iter()]
-        countpython = listprocessname.count("python.exe")
+    cmdline0 = "C:\\Anaconda3_32\\python.exe "
+    cmdline1 = "save_data.py"
+    # cmdline1 = "test.py"
 
-        psutil.Process(os.getpid()).cmdline()
-        # ['C:\\Python26\\python.exe', '-O']
+    wintitle = "관리자: C:\\Windows\\system32\\cmd.exe"
+
+    while(True) :
+        if click_kiwoom_pop() == True :
+            # kiwomm pop() was found
+            time.sleep(600)
+
+        if find_procs_id_by_pname_param(cmdline0, cmdline1) == 0 :
+            # no processing
+            print("No Processing Found, Execute command again")
+            insert_command_on_cmdline(wintitle, cmdline0 + cmdline1)
 
         time.sleep(60)
-        click_kiwoom_pop()
+
