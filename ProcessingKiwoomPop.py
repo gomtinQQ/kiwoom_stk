@@ -24,7 +24,7 @@ def click_kiwoom_pop():
             kiwoomapp = app.connect(handle = win)
             kiwoomspec = kiwoomapp.window(title=wintitle)
             kiwoomspec.child_window(title="확인").click()
-            print("Pop-up found : %s"%wintitle )
+            print("%s : Pop-up found : %s"%(time.asctime(), wintitle) )
             found = True
         except:
             pass
@@ -57,6 +57,8 @@ def insert_command_on_cmdline(wintitle, strcmd):
         win = findwin.find_window(title=wintitle)
         cmdapp = app.connect(handle=win)
         cmdspec = cmdapp.window(title=wintitle)
+        cmdspec.wrapper_object().type_keys("^c")
+        time.sleep(5)
         cmdspec.wrapper_object().send_chars(strcmd)
     except Exception as e :
         print(e)
@@ -69,16 +71,21 @@ if __name__ == "__main__" :
     # cmdline1 = "test.py"
 
     wintitle = "관리자: C:\\Windows\\system32\\cmd.exe"
+    print("command : " + cmdline0 + cmdline1)
+
+    timesleep = 300
 
     while(True) :
-        if click_kiwoom_pop() == True :
+        found =  click_kiwoom_pop()
+        if found == True :
             # kiwomm pop() was found
             time.sleep(600)
 
-        if find_procs_id_by_pname_param(cmdline0, cmdline1) == 0 :
+        if find_procs_id_by_pname_param(cmdline0, cmdline1) == 0 or found == True:
             # no processing
             print("No Processing Found, Execute command again")
             insert_command_on_cmdline(wintitle, cmdline0 + cmdline1)
 
-        time.sleep(60)
+        print("sleep %ssec"%timesleep)
+        time.sleep(timesleep)
 
