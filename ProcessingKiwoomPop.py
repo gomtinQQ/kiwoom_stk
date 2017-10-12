@@ -132,7 +132,7 @@ if __name__ == "__main__" :
 
         if proc_id != 0 and breceiving == False :
             # process은 살아 있는데, data을 받지 않고 있다면,  kill process
-            psutil.Process(proc_id).terminal()
+            psutil.Process(proc_id).terminate()
             print("%s : killing process"%(dt.now()))
             time.sleep(5)
         elif proc_id == 0 :
