@@ -85,8 +85,6 @@ def read_h5():
         print(data.head())
 
 if __name__ == '__main__':
-    # read_h5()
-    for index in range(10000) :
-        time.sleep(5)
-        print("current index = %s"%index)
-
+    for i in range(5000):
+        print("index = %s"%i )
+        time.sleep(2)
