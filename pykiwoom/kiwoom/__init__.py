@@ -163,8 +163,8 @@ class Kiwoom(QAxWidget):
                 date = str(data[0][3])
                 dt = datetime.strptime(date, "%Y%m%d")
                 if dt <= self.start_date:
-                    self.inquiry = 0
-            if inquiry == "0" or self.inquiry == 0:
+                    self.inquiry = "0"
+            if inquiry == "0" or self.inquiry == "0":
                 col_name = ['현재가', '거래량', '거래대금', '일자', '시가', '고가', '저가']
                 self.data_opt10081 = DataFrame(self.data_opt10081, columns=col_name)
 
@@ -177,8 +177,8 @@ class Kiwoom(QAxWidget):
                 date = str(int(data[0][0]))
                 dt = datetime.strptime(date, "%Y%m%d")
                 if dt <= self.start_date:
-                    self.inquiry = 0
-            if inquiry == "0" or self.inquiry == 0:
+                    self.inquiry = "0"
+            if inquiry == "0" or self.inquiry == "0":
                 col_name = ['일자', '시가', '고가', '저가', '종가', '전일비', '등락률', '거래량', '금액(백만)', '신용비', '개인',
                             '기관', '외인수량', '외국계', '프로그램', '외인비', '체결강도', '외인보유', '외인비중', '외인순매수',
                             '기관순매수', '개인순매수', '신용잔고율']

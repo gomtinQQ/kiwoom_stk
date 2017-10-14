@@ -17,7 +17,7 @@ def click_kiwoom_pop():
     :return:
     """
     found = False
-    listtitle = [u"[HTS 재접속 안내]", u"안녕하세요. 키움증권 입니다.", u"KHOpenAPI"]
+    listtitle = ["[HTS 재접속 안내]", "안녕하세요. 키움증권 입니다.", "KHOpenAPI", "조회횟수 제한 : -209"]
     for wintitle in listtitle :
         try:
             app = application.Application()
@@ -26,6 +26,8 @@ def click_kiwoom_pop():
             kiwoomspec = kiwoomapp.window(title=wintitle)
             kiwoomspec.child_window(title="확인").click()
             print("%s : Pop-up found : %s"%(time.asctime(), wintitle) )
+            # 한 번 더 click한다. 안 되는 경우가 가끔 있다.
+            kiwoomspec.child_window(title="확인").click()
             found = True
         except:
             pass
