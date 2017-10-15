@@ -59,14 +59,14 @@ class KiwoomWrapper:
     def get_data_opt10081(self, code, date='20161231'):
         """
         최근부터 date 가 지정하는 날짜까지 opt10081을 가져 온다.
-        그러나, 만일 이미 받은 data가 있다면,  data.index[-2] 부터, 최근까지의 data을 가져 온다.
+        그러나, 만일 이미 받은 data가 있다면,  data.index[-1] 부터, 최근까지의 data을 가져 온다.
         :param code:
         :param date: 최근부터 시작해서 data을 가져오는 마지막 end date임.
         :return:
         """
         try:
             data = pd.read_hdf("../data/hdf/%s.hdf" % code, 'day').sort_index()
-            self.start_date = str(data.index[-2])       # data.index 은 날짜형식의 숫자이다.
+            self.start_date = str(data.index[-1])       # data.index 은 날짜형식의 숫자이다.
         except (FileNotFoundError, IndexError, OSError, IOError)  as e:
             # pandas=0.18.1은 OSError, IOError가 난다.
             self.start_date = STARTDAY
@@ -89,14 +89,14 @@ class KiwoomWrapper:
     def get_data_opt10086(self, code, date):
         """
         최근부터 date 가 지정하는 날짜까지 opt10086을 가져 온다.
-        그러나, 만일 이미 받은 data가 있다면,  data.index[-2] 부터, 최근까지의 data을 가져 온다.
+        그러나, 만일 이미 받은 data가 있다면,  data.index[-1] 부터, 최근까지의 data을 가져 온다.
         :param code:
         :param date: 최근부터 시작해서 data을 가져오는 마지막 end date임.
         :return:
         """
         try:
             data = pd.read_hdf("../data/hdf/%s.hdf" % code, 'day').sort_index()
-            self.start_date = str(data.index[-2])
+            self.start_date = str(data.index[-1])
         except (FileNotFoundError, IndexError, OSError, IOError) as e:
             # pandas=0.18.1은 OSError, IOError가 난다.
             self.start_date = STARTDAY
