@@ -24,10 +24,9 @@ def click_kiwoom_pop():
             win = findwin.find_window(title=wintitle)
             kiwoomapp = app.connect(handle = win)
             kiwoomspec = kiwoomapp.window(title=wintitle)
+            kiwoomspec.child_window(title="확인").set_focus()
             kiwoomspec.child_window(title="확인").click()
             print("%s : Pop-up found : %s"%(time.asctime(), wintitle) )
-            # 한 번 더 click한다. 안 되는 경우가 가끔 있다.
-            kiwoomspec.child_window(title="확인").click()
             found = True
         except:
             pass
@@ -52,23 +51,25 @@ def find_procs_id_by_pname_param(pname, param):
             continue
     return 0
 
-def insert_command_on_cmdline(wintitle, strcmd):
+def insert_command_on_cmdline(wintitle, strcmd, cmdspec=None):
     """
     wintitle을 가진 window을 찾아서 strcmd을 수행시킨다.
     wintitle은 단지 cmd.exe을 수행한 이후,  process가 없는 빈 도스창이다.
+    만일 cmdspec이 있으면, 이를 사용한다.
     :param wintitle:
     :param strcmd:
+    :param cmdspec: if not None, pywinauto windows spec
     :return:
     """
     strcmd = strcmd + "\n"
     try:
-        app = application.Application()
-        win = findwin.find_window(title=wintitle)
-        cmdapp = app.connect(handle=win)
-        cmdspec = cmdapp.window(title=wintitle)
-        # cmdspec.wrapper_object().type_keys("^c")
-        # time.sleep(5)
-        cmdspec.wrapper_object().send_chars(strcmd)
+        if cmdspec == None:
+            app = application.Application()
+            win = findwin.find_window(title=wintitle)
+            cmdapp = app.connect(handle=win)
+            cmdspec = cmdapp.window(title=wintitle).wrapper_object()
+
+        cmdspec.send_keystrokes(strcmd)
     except Exception as e :
         print(e)
         pass
@@ -113,16 +114,19 @@ def is_if_receiving_opt10086_data():
 if __name__ == "__main__" :
     cmdline0 = "C:\\Anaconda3_32\\python.exe "
     cmdline1 = "save_data.py"
-    # cmdline1 = "test.py"
 
-    wintitle = "관리자: C:\\Windows\\system32\\cmd.exe"
+    # wintitle = "관리자: C:\\Windows\\system32\\cmd.exe"
+    wintitle = "관리자: Windows PowerShell ISE (x86)"
     print("command : " + cmdline0 + cmdline1)
     timesleep = 300
+    cmdwin = "PowerShell_ISE.exe"
 
     # 주의 사항 :
-    # 1. 이 스크립트를 실행시, 반드시  wintitle 을 실행시킨 이후, 아래의 스크립트를 수행한다.
-    # 2. 수행 dir = 이 스크립트가 존재하는 dir 이다.
-    # 3. "C:\\Anaconda3_32\\python.exe " 을 이용하여  이 스크립트를 수행한다.
+    # 1. 이 스크립트를 실행시, 반드시, "save_data.py" 가 있는 dir에서 수행한다.
+    # 2. "C:\\Anaconda3_32\\python.exe " 을 이용하여 "save_data.py"  스크립트를 수행한다.
+
+    app = application.Application().start(cmdwin)
+    cmdspec = app.PowerShellISE.wrapper_object()
 
     while(True) :
         popfound =  click_kiwoom_pop()
@@ -140,7 +144,7 @@ if __name__ == "__main__" :
         elif proc_id == 0 :
             # no processing
             print("%s : No Processing Found, Execute command again" % (dt.now()))
-            insert_command_on_cmdline(wintitle, cmdline0 + cmdline1)
+            insert_command_on_cmdline(wintitle, cmdline0 + cmdline1, cmdspec)
 
         print("sleep %sec"%timesleep)
         time.sleep(timesleep)
