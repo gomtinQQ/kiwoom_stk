@@ -14,8 +14,8 @@ from zipline.api import order, symbol
 from zipline.algorithm import TradingAlgorithm
 
 # data
-start = datetime.datetime(2010, 1, 1)
-end = datetime.datetime(2016, 3, 19)
+start = datetime.datetime(2016, 1, 1)
+end = datetime.datetime(2016, 12, 19)
 data = web.DataReader("AAPL", "yahoo", start, end)
 
 data = data[['Adj Close']]
