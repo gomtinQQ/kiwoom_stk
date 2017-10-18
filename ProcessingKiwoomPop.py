@@ -133,18 +133,22 @@ if __name__ == "__main__" :
         if popfound == True :
             print("%s : pop was found"%(dt.now()))
             time.sleep(600)
-        proc_id = find_procs_id_by_pname_param(cmdline0, cmdline1)
-        breceiving = is_if_receiving_opt10086_data()
 
-        if proc_id != 0 and breceiving == False :
+        while(True):
+            proc_id = find_procs_id_by_pname_param(cmdline0, cmdline1)
+            if proc_id != 0 :
+                break
+            print("%s : No Processing Found, Execute command again" % (dt.now()))
+            insert_command_on_cmdline(wintitle, cmdline0 + cmdline1, cmdspec)
+            time.sleep(2)
+
+        if  is_if_receiving_opt10086_data() == False :
             # process은 살아 있는데, data을 받지 않고 있다면,  kill process
             psutil.Process(proc_id).terminate()
             print("%s : killing process"%(dt.now()))
             time.sleep(5)
-        elif proc_id == 0 :
-            # no processing
-            print("%s : No Processing Found, Execute command again" % (dt.now()))
-            insert_command_on_cmdline(wintitle, cmdline0 + cmdline1, cmdspec)
+            continue
+
 
         print("sleep %sec"%timesleep)
         time.sleep(timesleep)

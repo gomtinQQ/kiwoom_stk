@@ -24,7 +24,7 @@ data.columns = ['AAPL']
 #아래를 사용하면,
 #  KeyError: 'the label [2009-12-31 00:00:00+00:00] is not in the [index]'
 # 라고 error가 뜬다. 사용하지 않는다. 당분간 사용하지 않는다.
-# data = data.tz_localize('UTC')
+data = data.tz_localize('UTC')
 
 def initialize(context):
     pass
