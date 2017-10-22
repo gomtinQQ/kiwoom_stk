@@ -17,7 +17,7 @@ def click_kiwoom_pop():
     :return:
     """
     found = False
-    listtitle = ["[HTS 재접속 안내]", "안녕하세요. 키움증권 입니다.", "KHOpenAPI", "조회횟수 제한 : -209"]
+    listtitle = ["[HTS 재접속 안내]", "안녕하세요. 키움증권 입니다.", "KHOpenAPI", "조회횟수 제한 : -209", "opstarter"]
     for wintitle in listtitle :
         try:
             app = application.Application()
@@ -28,6 +28,7 @@ def click_kiwoom_pop():
             kiwoomspec.child_window(title="확인").click()
             print("%s : Pop-up found : %s"%(time.asctime(), wintitle) )
             found = True
+            time.sleep(600)
         except:
             pass
     return found
@@ -129,10 +130,9 @@ if __name__ == "__main__" :
     cmdspec = app.PowerShellISE.wrapper_object()
 
     while(True) :
-        popfound =  click_kiwoom_pop()
-        if popfound == True :
+        if click_kiwoom_pop() == True :
             print("%s : pop was found"%(dt.now()))
-            time.sleep(600)
+            continue
 
         while(True):
             proc_id = find_procs_id_by_pname_param(cmdline0, cmdline1)
@@ -140,7 +140,7 @@ if __name__ == "__main__" :
                 break
             print("%s : No Processing Found, Execute command again" % (dt.now()))
             insert_command_on_cmdline(wintitle, cmdline0 + cmdline1, cmdspec)
-            time.sleep(2)
+            time.sleep(5)
 
         if  is_if_receiving_opt10086_data() == False :
             # process은 살아 있는데, data을 받지 않고 있다면,  kill process
