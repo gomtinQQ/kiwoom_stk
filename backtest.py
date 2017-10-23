@@ -35,5 +35,8 @@ def handle_data(context, data):
 algo = TradingAlgorithm(initialize=initialize, handle_data=handle_data)
 result = algo.run(data)
 
+serialdatetime = pd.Series([pd.to_datetime(bb, format="%Y%m%d") for bb in df.index ])
+df2 = df.set_index(serialdatetime)
+
 plt.plot(result.index, result.portfolio_value)
 plt.show()
