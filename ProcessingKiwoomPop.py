@@ -140,13 +140,13 @@ if __name__ == "__main__" :
                 break
             print("%s : No Processing Found, Execute command again" % (dt.now()))
             insert_command_on_cmdline(wintitle, cmdline0 + cmdline1, cmdspec)
-            time.sleep(5)
+            time.sleep(20)
 
         if  is_if_receiving_opt10086_data() == False :
             # process은 살아 있는데, data을 받지 않고 있다면,  kill process
             psutil.Process(proc_id).terminate()
             print("%s : killing process"%(dt.now()))
-            time.sleep(5)
+            time.sleep(20)
             continue
 
 
