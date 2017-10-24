@@ -8,23 +8,13 @@
 #---------------------------------------------------------
 
 import pandas_datareader.data as web
+import pandas as pd
 import datetime
 import matplotlib.pyplot as plt
 from zipline.api import order, symbol
 from zipline.algorithm import TradingAlgorithm
 
-# data
-start = datetime.datetime(2016, 1, 1)
-end = datetime.datetime(2016, 12, 19)
-data = web.DataReader("AAPL", "yahoo", start, end)
-
-data = data[['Adj Close']]
-data.columns = ['AAPL']
-
-#아래를 사용하면,
-#  KeyError: 'the label [2009-12-31 00:00:00+00:00] is not in the [index]'
-# 라고 error가 뜬다. 사용하지 않는다. 당분간 사용하지 않는다.
-data = data.tz_localize('UTC')
+import pyalgo
 
 def initialize(context):
     pass
@@ -32,11 +22,42 @@ def initialize(context):
 def handle_data(context, data):
     order(symbol('AAPL'), 1)
 
-algo = TradingAlgorithm(initialize=initialize, handle_data=handle_data)
-result = algo.run(data)
+def backtest():
+    df = pyalgo.get_dataframe_with_code("005440")
+    df = pyalgo.add_이동평균선_to_dataframe(df, [5, 20])
 
-serialdatetime = pd.Series([pd.to_datetime(bb, format="%Y%m%d") for bb in df.index ])
-df2 = df.set_index(serialdatetime)
+    serialdatetime = pd.Series([pd.to_datetime(bb, format="%Y%m%d") for bb in df.index])
+    df2 = df.set_index(serialdatetime)
+    data = df2[["현재가"]]
+    data.columns = ['AAPL']
+    print("data length :%s"%(len(data)))
 
-plt.plot(result.index, result.portfolio_value)
-plt.show()
+    algo = TradingAlgorithm(initialize=initialize, handle_data=handle_data)
+    result = algo.run(data)
+
+    plt.plot(result.index, result.portfolio_value)
+    plt.show()
+
+
+
+def temp():
+    # data
+    start = datetime.datetime(2016, 1, 1)
+    end = datetime.datetime(2016, 12, 19)
+    data = web.DataReader("AAPL", "yahoo", start, end)
+
+    data = data[['Adj Close']]
+    data.columns = ['AAPL']
+
+    #아래를 사용하면,
+    #  KeyError: 'the label [2009-12-31 00:00:00+00:00] is not in the [index]'
+    # 라고 error가 뜬다. 사용하지 않는다. 당분간 사용하지 않는다.
+    data = data.tz_localize('UTC')
+    algo = TradingAlgorithm(initialize=initialize, handle_data=handle_data)
+    result = algo.run(data)
+
+    plt.plot(result.index, result.portfolio_value)
+    plt.show()
+
+if __name__ == "__main__" :
+    backtest()
