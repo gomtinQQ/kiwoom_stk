@@ -151,6 +151,6 @@ if __name__ == "__main__" :
             continue
 
 
-        print("%s : sleep %sec"%(dt.now(), timesleep))
+        print("%s : sleep %s sec"%(dt.now(), timesleep))
         time.sleep(timesleep)
 
