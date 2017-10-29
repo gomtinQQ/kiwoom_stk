@@ -118,6 +118,33 @@ def temp():
     plt.show()
 
 
+def temp2():
+    # data
+
+    # start = dt(2017, 1, 1, 0, 0, 0, 0, pytz.utc)
+    # end = dt(2017, 2, 9, 0, 0, 0, 0, pytz.utc)
+
+    start = dt.strptime("20170101%s"%("000000"), "%Y%m%d%H%M%S").astimezone(pytz.utc)
+    end = dt.strptime("20170209%s"%("000000"), "%Y%m%d%H%M%S").astimezone(pytz.utc)
+
+    rawdata = [ aa for aa in range(40)]
+    daterange = pd.date_range('2017/1/1', periods=40)
+
+    data = pd.DataFrame(rawdata, daterange, ['AAPL'])
+
+
+
+    result = run_algorithm(start, end, initialize,100000000.0, handle_data,data_frequency = 'daily', data=data)
+
+
+
+    plt.plot(result.index, result.ma5)
+    plt.plot(result.index, result.ma20)
+    plt.legend(loc='best')
+
+
+    plt.show()
+
 
 if __name__ == "__main__" :
     backtest()
