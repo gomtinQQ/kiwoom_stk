@@ -65,14 +65,20 @@ def backtest():
     # dtstart = dt(2001, 1, 2, 0, 0, 0, 0, pytz.utc)
     # dtend = dt(2017, 9, 29, 0, 0, 0, 0, pytz.utc)
 
-    dtstart = dt(2001, 1, 2)
-    dtend = dt(2017, 9, 29 )
+    start = str(df.index[0]) + "%s"
+    dtstart = dt.strptime(start % ("000000"), "%Y%m%d%H%M%S").astimezone(pytz.utc)
 
-    indexnew = pd.date_range('2001/1/2', periods=4119)
-    indexnew = indexnew.tz_localize(None)
+    end = str(df.index[-1]) + "%s"
+    dtend = dt.strptime(end % ("000000"), "%Y%m%d%H%M%S").astimezone(pytz.utc)
+
+    # dtstart = dt(2001, 1, 2)
+    # dtend = dt(2017, 9, 29 )
+    #
+    # indexnew = pd.date_range('2001/1/2', periods=4119)
+    # indexnew = indexnew.tz_localize(None)
 
 
-    df = df.set_index(pd.DatetimeIndex(indexnew))
+    df = df.set_index(pd.DatetimeIndex(serialdatetime))
     data = df[["현재가"]]
     data.columns = ['AAPL']
     # data = data.tz_localize(pytz.utc)
