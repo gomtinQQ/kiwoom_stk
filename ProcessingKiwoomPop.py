@@ -7,6 +7,7 @@ import pywinauto.findwindows as findwin
 import time
 import psutil, os
 from datetime import datetime as dt
+import subprocess
 
 # 아래의 code들은  다음의 url을  보고서  만들었다.
 # http://pywinauto.readthedocs.io/en/latest/getting_started.html# 을 참조하자.
@@ -40,17 +41,35 @@ def find_procs_id_by_pname_param(pname, param):
     :param param: parameter
     :return: pid
     """
-
-    for p in psutil.process_iter():
+    while(True):
         try:
-            listcmdline = p.cmdline()
-            if len(listcmdline) >= 2 and "python" in listcmdline[0] and param in listcmdline[1]:
-                return p.pid
-        except (psutil.AccessDenied, psutil.ZombieProcess):
+            p = subprocess.Popen(["WMIC", "PROCESS", "get", "Commandline,Processid"], stdout=subprocess.PIPE)
+            out, err = p.communicate()
+            strout = str(out, "utf-8").strip()
+            liststrout = strout.split("\n")
+            for i in range(len(liststrout)):
+                # multi space을 one space으로 만들고,
+                liststrout[i] = " ".join(liststrout[i].split())
+                if param in liststrout[i] :
+                    # 마지막에 있는 숫자를 return한다.
+                    return int( liststrout[i].split()[-1])
+            return 0
+        except:
+            time.sleep(5)
             continue
-        except psutil.NoSuchProcess:
-            continue
-    return 0
+
+
+    # 아래의 script는 windows 10에서 access denied 되므로 사용하지 않도록 한다.
+    # for p in psutil.process_iter():
+    #     try:
+    #         listcmdline = p.cmdline()
+    #         if len(listcmdline) >= 2 and "python" in listcmdline[0] and param in listcmdline[1]:
+    #             return p.pid
+    #     except (psutil.AccessDenied, psutil.ZombieProcess):
+    #         continue
+    #     except psutil.NoSuchProcess:
+    #         continue
+    # return 0
 
 def insert_command_on_cmdline(wintitle, strcmd, cmdspec=None):
     """
