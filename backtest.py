@@ -10,6 +10,7 @@
 import pandas_datareader.data as web
 import pandas as pd
 from datetime import datetime as dt
+import datetime
 import matplotlib.pyplot as plt
 from zipline.api import order_target, record, symbol, set_commission
 from zipline.finance import commission
@@ -125,24 +126,30 @@ def temp():
 
 
 def temp2():
-    # data
+    df = pd.read_hdf("test100.hdf", "day")
+    datelen = len(df)
 
-    # start = dt(2017, 1, 1, 0, 0, 0, 0, pytz.utc)
-    # end = dt(2017, 2, 9, 0, 0, 0, 0, pytz.utc)
+    # start = dt.strptime("20170101%s"%("000000"), "%Y%m%d%H%M%S").astimezone(pytz.utc)
+    # end = dt.strptime("20170410%s"%("000000"), "%Y%m%d%H%M%S").astimezone(pytz.utc)
 
-    start = dt.strptime("20170101%s"%("000000"), "%Y%m%d%H%M%S").astimezone(pytz.utc)
-    end = dt.strptime("20170209%s"%("000000"), "%Y%m%d%H%M%S").astimezone(pytz.utc)
+    start = dt(2017, 1, 1, 0, 0, 0, 0, pytz.utc)
+    end = dt(2017, 4, 10, 0, 0, 0, 0, pytz.utc)
 
-    rawdata = [ aa for aa in range(40)]
-    daterange = pd.date_range('2017/1/1', periods=40)
+    # start = datetime.datetime(2017, 1, 1)
+    # end = datetime.datetime(2017, 4, 10)
 
+    # data = web.DataReader("AAPL", "yahoo", start, end)
+
+    # rawdata = [ aa for aa in range(datelen)]
+    rawdata = df["현재가"].tolist()
+    daterange = pd.date_range('2017/1/1', periods=datelen)
     data = pd.DataFrame(rawdata, daterange, ['AAPL'])
-
-
+    data = data.tz_localize('UTC')
 
     result = run_algorithm(start, end, initialize,100000000.0, handle_data,data_frequency = 'daily', data=data)
 
-
+    # algo = TradingAlgorithm(initialize=initialize, handle_data=handle_data)
+    # result = algo.run(data)
 
     plt.plot(result.index, result.ma5)
     plt.plot(result.index, result.ma20)
@@ -153,4 +160,4 @@ def temp2():
 
 
 if __name__ == "__main__" :
-    backtest()
+    temp2()
