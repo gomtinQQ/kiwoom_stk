@@ -148,6 +148,8 @@ if __name__ == "__main__" :
     app = application.Application().start(cmdwin)
     cmdspec = app.PowerShellISE.wrapper_object()
 
+    time.sleep(5)
+
     while(True) :
         if click_kiwoom_pop() == True :
             print("%s : pop was found"%(dt.now()))
