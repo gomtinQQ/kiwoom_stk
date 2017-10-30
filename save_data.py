@@ -1,6 +1,5 @@
 import sys
 from PyQt5.QtWidgets import QApplication
-from pykiwoom.kiwoom import *
 from pykiwoom.wrapper import *
 import numpy as np
 import pandas as pd
@@ -12,16 +11,14 @@ MARKET_KOSDAK  = 10
 
 class DailyData:
     def __init__(self):
-        self.kiwoom = Kiwoom()
-        self.kiwoom.comm_connect()
-        self.wrapper = KiwoomWrapper(self.kiwoom)
+        self.wrapper = KiwoomWrapper()
         self.get_code_list()
         print(len(self.kospi_codes))
         print(len(self.kosdak_codes))
 
     def get_code_list(self):
-        self.kospi_codes = self.kiwoom.get_codelist_by_market(MARKET_KOSPI)
-        self.kosdak_codes = self.kiwoom.get_codelist_by_market(MARKET_KOSDAK)
+        self.kospi_codes = self.wrapper.get_codelist_by_market(MARKET_KOSPI)
+        self.kosdak_codes = self.wrapper.get_codelist_by_market(MARKET_KOSDAK)
 
     def check_recent_file(self, code):
         import os
@@ -36,10 +33,10 @@ class DailyData:
         return False
 
     def save_all_data(self):
-        # today = datetime.date.today().strftime("%Y%m%d")
+        today = datetime.date.today().strftime("%Y%m%d")
 
         # 일단 2017.10.9일 까지만 모두 저장한다. 이후 다시 update 한다.
-        today = datetime.date(2017,10,9).strftime("%Y%m%d")
+        # today = datetime.date(2017,10,9).strftime("%Y%m%d")
         print(today)
 
         # load code list from account
@@ -61,14 +58,14 @@ class DailyData:
         for code in self.kospi_codes:
             if code == '':
                 continue
-            print("Kospi : get data of %s, %s" % (code, self.kiwoom.get_master_code_name(code)))
+            print("Kospi : get data of %s" % (code))
             if self.check_recent_file(code): continue
             self.save_table(code, today)
 
         for code in self.kosdak_codes:
             if code == '':
                 continue
-                print("Kosdak : get data of %s, %s" % (code, self.kiwoom.get_master_code_name(code)))
+            print("Kosdak : get data of %s" % (code))
             if self.check_recent_file(code): continue
             self.save_table(code, today)
 
@@ -83,7 +80,8 @@ class DailyData:
         data = pd.concat([data_81, data_86.loc[:, col_86]], axis=1)
         #con = sqlite3.connect("../data/stock.db")
         try:
-            data = data.loc[data.index > int(self.kiwoom.start_date.strftime("%Y%m%d"))]
+            # data.index 은 20170904 와 같이 숫자이다.
+            data = data.loc[data.index > int(self.wrapper.start_date)]
             #orig_data = pd.read_sql("SELECT * FROM '%s'" % code, con, index_col='일자').sort_index()
             orig_data = pd.read_hdf("../data/hdf/%s.hdf" % code, 'day').sort_index()
             end_date = orig_data.index[-1]
