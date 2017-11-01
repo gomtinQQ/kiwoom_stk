@@ -22,7 +22,7 @@ import pyalgo
 
 def initialize(context):
     context.i = 0
-    context.sym = symbol('AAPL')
+    context.sym = symbol('종가')
     context.hold = False
     set_commission(commission.PerDollar(cost=0.00165))
 
@@ -46,7 +46,7 @@ def handle_data(context, data):
         context.hold = False
         sell = True
 
-    record(AAPL=data.current(context.sym, "price"), ma5=ma5, ma20=ma20, buy=buy, sell=sell)
+    record(종가=data.current(context.sym, "price"), ma5=ma5, ma20=ma20, buy=buy, sell=sell)
 
 def backtest():
     df = pyalgo.get_dataframe_with_code("005440")
@@ -81,7 +81,7 @@ def backtest():
 
     df = df.set_index(pd.DatetimeIndex(serialdatetime))
     data = df[["현재가"]]
-    data.columns = ['AAPL']
+    data.columns = ['종가']
     # data = data.tz_localize(pytz.utc)
 
     print("data length :%s"%(len(data)))
@@ -102,10 +102,10 @@ def temp():
     start = dt(2017, 1, 1, 0, 0, 0, 0, pytz.utc)
     end = dt(2017, 9, 29, 0, 0, 0, 0, pytz.utc)
 
-    data = web.DataReader("AAPL", "yahoo", start, end)
+    data = web.DataReader("종가", "yahoo", start, end)
 
     data = data[['Adj Close']]
-    data.columns = ['AAPL']
+    data.columns = ['종가']
     # data = data.tz_localize('UTC')
 
     # algo = TradingAlgorithm(initialize=initialize, handle_data=handle_data)
@@ -138,13 +138,14 @@ def temp2():
     # start = datetime.datetime(2017, 1, 1)
     # end = datetime.datetime(2017, 4, 10)
 
-    # data = web.DataReader("AAPL", "yahoo", start, end)
+    # data = web.DataReader("종가", "yahoo", start, end)
 
     # rawdata = [ aa for aa in range(datelen)]
     rawdata = df["현재가"].tolist()
-    daterange = pd.date_range('2017/1/1', periods=datelen)
-    data = pd.DataFrame(rawdata, daterange, ['AAPL'])
-    data = data.tz_localize('UTC')
+    # daterange = pd.date_range('2017/1/1', periods=datelen)
+    daterange = pd.date_range(start, end)
+    data = pd.DataFrame(rawdata, daterange, ['종가'])
+    # data = data.tz_localize('UTC')
 
     result = run_algorithm(start, end, initialize,100000000.0, handle_data,data_frequency = 'daily', data=data)
 
