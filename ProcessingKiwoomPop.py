@@ -164,9 +164,13 @@ if __name__ == "__main__" :
             # openAPI update한다고 시간이 많이 걸리 수 있다.
             time.sleep(60)
 
+
+
         if  is_if_receiving_opt10086_data() == False :
             # process은 살아 있는데, data을 받지 않고 있다면,  kill process
-            psutil.Process(proc_id).terminate()
+            # 하지만, 바로 아래의 terminate()은 windows 10에서 동작되지 않는다. 그래서 key 입력으로 대체한다.
+            # psutil.Process(proc_id).terminate()
+            cmdspec.type_keys("^c")
             print("%s : killing process"%(dt.now()))
             time.sleep(30)
             continue
