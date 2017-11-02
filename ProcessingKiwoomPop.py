@@ -18,15 +18,19 @@ def click_kiwoom_pop():
     :return:
     """
     found = False
-    listtitle = ["[HTS 재접속 안내]", "안녕하세요. 키움증권 입니다.", "KHOpenAPI", "조회횟수 제한 : -209", "opstarter"]
+    listtitle = ["[HTS 재접속 안내]", "안녕하세요. 키움증권 입니다.", "KHOpenAPI", "조회횟수 제한 : -209", "opstarter", "Python"]
     for wintitle in listtitle :
         try:
             app = application.Application()
             win = findwin.find_window(title=wintitle)
             kiwoomapp = app.connect(handle = win)
             kiwoomspec = kiwoomapp.window(title=wintitle)
-            kiwoomspec.child_window(title="확인").set_focus()
-            kiwoomspec.child_window(title="확인").click()
+            if wintitle == "Python" :
+                kiwoomspec.child_window(title="프로그램 닫기(&C)", class_name="Button").set_focus()
+                kiwoomspec.child_window(title="프로그램 닫기(&C)", class_name="Button").click()
+            else:
+                kiwoomspec.child_window(title="확인").set_focus()
+                kiwoomspec.child_window(title="확인").click()
             print("%s : Pop-up found : %s"%(time.asctime(), wintitle) )
             found = True
             time.sleep(600)
