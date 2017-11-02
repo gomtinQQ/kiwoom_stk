@@ -68,7 +68,7 @@ class DailyData:
             print("Kosdak : get data of %s" % (code))
             if self.check_recent_file(code): continue
             self.save_table(code, today)
-
+        print("Job finished...")
     def save_table(self, code, date):
         TR_REQ_TIME_INTERVAL = 4
         time.sleep(TR_REQ_TIME_INTERVAL)

@@ -92,6 +92,12 @@ class TestStrategy(bt.Strategy):
         # pnl (float)    : current profit and loss of the trade (gross pnl)
         # pnlcomm (float): current profit and loss of the trade minus commission (net pnl)
 
+    def prenext(self):
+        print('prenext:: current period:',  len(self))
+
+    def nextstart(self):
+        print('nextstart:: current period:', len(self))
+
     def next(self):
         """
         This method will be called for all remaining data points when the minimum period for all datas/indicators have been meet.
@@ -102,6 +108,8 @@ class TestStrategy(bt.Strategy):
         self.log('Close, %.2f' % self.dataclose[0])
 
         # Check if an order is pending ... if yes, we cannot send a 2nd one
+        print('next:: current period:', len(self))
+
         if self.order:
             return
 
