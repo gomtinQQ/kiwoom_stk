@@ -5,20 +5,20 @@ import datetime  # For datetime objects
 import os.path  # To manage paths
 import sys  # To find out the script name (in argv[0])
 
+
 # Import the backtrader platform
 import backtrader as bt
 
 
 # Create a Stratey
 class TestStrategy(bt.Strategy):
-    params = (
-        ('maperiod', 15),
-    )
+    params = ( ('maperiod', 22), ('printlog', False), )
 
-    def log(self, txt, dt=None):
+    def log(self, txt, dt=None, doprint=False):
         ''' Logging function fot this strategy'''
-        dt = dt or self.datas[0].datetime.date(0)
-        print('%s, %s' % (dt.isoformat(), txt))
+        if self.params.printlog or doprint:
+            dt = dt or self.datas[0].datetime.date(0)
+            print('%s, %s' % (dt.isoformat(), txt))
 
     def __init__(self):
         # Keep a reference to the "close" line in the data[0] dataseries
@@ -110,13 +110,24 @@ class TestStrategy(bt.Strategy):
                 # Keep track of the created order to avoid a 2nd order
                 self.order = self.sell()
 
+    def stop(self):
+        """
+        optstrategy을 사용한다면,  각 MA Period이 끝나는 시점에서  stop()이 called 된다.
+        :return:
+        """
+        self.log('(MA Period %2d) Ending Value %.2f' % (self.params.maperiod, self.broker.getvalue()), doprint=True)
+
 
 if __name__ == '__main__':
     # Create a cerebro entity
     cerebro = bt.Cerebro()
 
     # Add a strategy
-    cerebro.addstrategy(TestStrategy)
+    bool_opti_strategy = False
+    if bool_opti_strategy :
+        strats = cerebro.optstrategy( TestStrategy, maperiod=range(10, 100))
+    else:
+        cerebro.addstrategy(TestStrategy)
 
     # Datas are in a subfolder of the samples. Need to find where the script is
     # because it could have been called from anywhere
@@ -154,5 +165,6 @@ if __name__ == '__main__':
     # Print out the final result
     print('Final Portfolio Value: %.2f' % cerebro.broker.getvalue())
 
-    # Plot the result
-    cerebro.plot()
+    # # Plot the result
+    if bool_opti_strategy == False:
+        cerebro.plot()

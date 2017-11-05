@@ -1,164 +1,221 @@
-# /usr/bin/python3
-#-*- coding: utf-8 -*-
-#Author : jaehyek Choi
-# 목적 : zipline을 활용하여,  만들거나 만든 트레이딩 알고리즘을 검증한다.
-# zipline은  https://github.com/jaehyek/zipline 처음에 설치방법에 대해
-# 설명을 했다. Python 3.6 32bit 으로.
-# 키움증권 OCX 가 32bit이므로 우리가 사용하는 환경은  32bit이다.
-#---------------------------------------------------------
+from __future__ import (absolute_import, division, print_function,
+                        unicode_literals)
 
-import pandas_datareader.data as web
+import datetime  # For datetime objects
+import os.path  # To manage paths
+import sys  # To find out the script name (in argv[0])
+
+# Import the backtrader platform
+# refer to https://www.backtrader.com/docu/index.html
+import backtrader as bt
 import pandas as pd
-from datetime import datetime as dt
-import datetime
-import matplotlib.pyplot as plt
-from zipline.api import order_target, record, symbol, set_commission
-from zipline.finance import commission
-from zipline.algorithm import TradingAlgorithm
-from zipline.utils.run_algo import run_algorithm
-import pytz
-
 import pyalgo
+import numpy as np
 
-def initialize(context):
-    context.i = 0
-    context.sym = symbol('종가')
-    context.hold = False
-    set_commission(commission.PerDollar(cost=0.00165))
+# Create a Stratey
+class TestStrategy(bt.Strategy):
+    params = (
+        ('maperiod5', 5),
+        ('maperiod20', 20),
+        ('printlog', False),
+    )
 
-def handle_data(context, data):
-    context.i += 1
-    if context.i < 20:
-        return
+    def log(self, txt, dt=None, doprint=False):
+        ''' Logging function fot this strategy'''
+        if self.params.printlog or doprint:
+            dt = dt or self.datas[0].datetime.date(0)
+            print('%s, %s' % (dt.isoformat(), txt))
 
-    buy = False
-    sell = False
+    def __init__(self):
+        # Keep a reference to the "close" line in the data[0] dataseries
+        self.dataclose = self.datas[0].close
 
-    ma5 = data.history(context.sym, 'price', bar_count=5, frequency='1d').mean()
-    ma20 = data.history(context.sym, 'price', bar_count=20, frequency='1d').mean()
+        # To keep track of pending orders and buy price/commission
+        self.order = None
+        self.buyprice = None
+        self.buycomm = None
 
-    if ma5 > ma20 and context.hold == False:
-        order_target(context.sym, 100)
-        context.hold = True
-        buy = True
-    elif ma5 < ma20 and context.hold == True:
-        order_target(context.sym, -100)
-        context.hold = False
-        sell = True
+        # Add a MovingAverageSimple indicator
+        self.sma5 = bt.indicators.SimpleMovingAverage(self.datas[0], period=self.params.maperiod5)
+        self.sma20 = bt.indicators.SimpleMovingAverage(self.datas[0], period=self.params.maperiod20)
 
-    record(종가=data.current(context.sym, "price"), ma5=ma5, ma20=ma20, buy=buy, sell=sell)
+        # # Indicators for the plotting show
+        # bt.indicators.ExponentialMovingAverage(self.datas[0], period=25)
+        # bt.indicators.WeightedMovingAverage(self.datas[0], period=25,
+        #                                     subplot=True)
+        # bt.indicators.StochasticSlow(self.datas[0])
+        # bt.indicators.MACDHisto(self.datas[0])
+        # rsi = bt.indicators.RSI(self.datas[0])
+        # bt.indicators.SmoothedMovingAverage(rsi, period=10)
+        # bt.indicators.ATR(self.datas[0], plot=False)
 
-def backtest():
-    df = pyalgo.get_dataframe_with_code("005440")
-    # df = pyalgo.add_이동평균선_to_dataframe(df, [5, 20])
+    def notify_order(self, order):
+        """
+        Receives an order whenever there has been a change in one
+        :param order:
+        :return:
+        """
+        if order.status in [order.Submitted, order.Accepted]:
+            # Buy/Sell order submitted/accepted to/by broker - Nothing to do
+            return
 
+        # Check if an order has been completed
+        # Attention: broker could reject order if not enougth cash
+        if order.status in [order.Completed]:
+            if order.isbuy():
+                self.log(
+                    'BUY EXECUTED, Price: %.2f, Cost: %.2f, Comm %.2f' %
+                    (order.executed.price,
+                     order.executed.value,
+                     order.executed.comm))
+
+                self.buyprice = order.executed.price
+                self.buycomm = order.executed.comm
+            else:  # Sell
+                self.log('SELL EXECUTED, Price: %.2f, Cost: %.2f, Comm %.2f' %
+                         (order.executed.price,
+                          order.executed.value,
+                          order.executed.comm))
+
+            self.bar_executed = len(self)
+
+        elif order.status in [order.Canceled, order.Margin, order.Rejected]:
+            self.log('Order Canceled/Margin/Rejected')
+
+        # Write down: no pending order
+        self.order = None
+
+    def notify_trade(self, trade):
+        """
+        Receives a trade whenever there has been a change in one
+        :param trade:
+        :return:
+        """
+        if not trade.isclosed:
+            return
+
+        self.log('OPERATION PROFIT, GROSS %.2f, NET %.2f' % (trade.pnl, trade.pnlcomm))
+        # pnl (float)    : current profit and loss of the trade (gross pnl)
+        # pnlcomm (float): current profit and loss of the trade minus commission (net pnl)
+
+    def prenext(self):
+        # print('prenext:: current period:',  len(self), self.datas[0].datetime.date(0))
+        pass
+
+    def nextstart(self):
+        # print('nextstart:: current period:', len(self), self.datas[0].datetime.date(0))
+        pass
+
+    def next(self):
+        """
+        This method will be called for all remaining data points when the minimum period for all datas/indicators have been meet.
+        :return:
+        """
+
+        # Simply log the closing price of the series from the reference
+        self.log('Close, %.2f' % self.dataclose[0])
+
+        # Check if an order is pending ... if yes, we cannot send a 2nd one
+        if self.order:
+            return
+
+        # Check if we are in the market
+        if not self.position:
+
+            # Not yet ... we MIGHT BUY if ...
+            if self.sma5[0] > self.sma20[0]:
+
+                # BUY, BUY, BUY!!! (with all possible default parameters)
+                self.log('BUY CREATE, %.2f' % self.dataclose[0])
+
+                # Keep track of the created order to avoid a 2nd order
+                self.order = self.buy()
+
+        else:
+
+            if self.sma5[0] < self.sma20[0]:
+                # SELL, SELL, SELL!!! (with all possible default parameters)
+                self.log('SELL CREATE, %.2f' % self.dataclose[0])
+
+                # Keep track of the created order to avoid a 2nd order
+                self.order = self.sell()
+
+    def stop(self):
+        self.log('(MA Period %2d, %2d) Ending Value %.2f' % (self.params.maperiod5,self.params.maperiod20, self.broker.getvalue()), doprint=True)
+
+
+if __name__ == '__main__':
+    # Create a cerebro entity
+    cerebro = bt.Cerebro()
+
+    # Add a strategy
+    cerebro.addstrategy(TestStrategy)
+
+    # # Datas are in a subfolder of the samples. Need to find where the script is
+    # # because it could have been called from anywhere
+    # modpath = os.path.dirname(os.path.abspath(sys.argv[0]))
+    # datapath = os.path.join(modpath, 'orcl-1995-2014.txt')
+    #
+    # # Create a Data Feed
+    # data = bt.feeds.YahooFinanceCSVData(
+    #     dataname=datapath,
+    #     # Do not pass values before this date
+    #     fromdate=datetime.datetime(2000, 1, 1),
+    #     # Do not pass values before this date
+    #     todate=datetime.datetime(2013, 12, 31),
+    #     # Do not pass values after this date
+    #     reverse=False)
+
+    # read and create data from 000300.hdf
+    df = pyalgo.get_dataframe_with_code("000300")
     # df은 오름차순으로 되어 있다.
 
-    # serialdatetime = [pd.to_datetime(bb, utc="UTC", format="%Y%m%d") for bb in df.index]
-    serialdatetime = [dt.strptime(str(bb), "%Y%m%d") for bb in df.index]
-
-    # dtstart = serialdatetime[0].astimezone(pytz.utc)
-    # dtend = serialdatetime[-1].astimezone(pytz.utc)
-
-    # dtstart = serialdatetime[0]
-    # dtend = serialdatetime[-1]
-
-    # dtstart = dt(2001, 1, 2, 0, 0, 0, 0, pytz.utc)
-    # dtend = dt(2017, 9, 29, 0, 0, 0, 0, pytz.utc)
-
-    start = str(df.index[0]) + "%s"
-    dtstart = dt.strptime(start % ("000000"), "%Y%m%d%H%M%S").astimezone(pytz.utc)
-
-    end = str(df.index[-1]) + "%s"
-    dtend = dt.strptime(end % ("000000"), "%Y%m%d%H%M%S").astimezone(pytz.utc)
-
-    # dtstart = dt(2001, 1, 2)
-    # dtend = dt(2017, 9, 29 )
-    #
-    # indexnew = pd.date_range('2001/1/2', periods=4119)
-    # indexnew = indexnew.tz_localize(None)
-
-
+    serialdatetime = [datetime.datetime.strptime(str(bb), "%Y%m%d") for bb in df.index]
     df = df.set_index(pd.DatetimeIndex(serialdatetime))
-    data = df[["현재가"]]
-    data.columns = ['종가']
-    # data = data.tz_localize(pytz.utc)
+    data = df[["현재가", "거래량", "시가", "고가", "저가"]]
+    data.columns = ['close', 'volume', 'open', 'high', 'low']
 
-    print("data length :%s"%(len(data)))
+    data = bt.feeds.PandasData(dataname=data, timeframe=1, openinterest=None)
 
-    dfresult = run_algorithm(dtstart, dtend, initialize, 100000000.0, handle_data, data_frequency = 'daily', data=data)
-    #
-    # algo = TradingAlgorithm(initialize=initialize, handle_data=handle_data)
-    # dfresult = algo.run(data)
+    # Add the Data Feed to Cerebro
+    cerebro.adddata(data)
 
-    plt.plot(dfresult.index, dfresult.portfolio_value)
-    plt.show()
+    # Set our desired cash start
+    # cash단위가 원으로 되므로  1억으로 확대한다.
+    cerebro.broker.setcash(100000000.0)
 
+    # Add a FixedSize sizer according to the stake
+    cerebro.addsizer(bt.sizers.FixedSize, stake=10)
 
+    # Set the commission
+    # 매도거래세 : 0.3%,  매도매수수수료:0.165%  -> total : 0.33%
+    # 매수 매도에 둘로 나누면, 0.165%가 된다.
+    cerebro.broker.setcommission(commission=0.00165)
 
-def temp():
-    # data
+    # Print out the starting conditions
+    print('Starting Portfolio Value: %.2f' % cerebro.broker.getvalue())
 
-    start = dt(2017, 1, 1, 0, 0, 0, 0, pytz.utc)
-    end = dt(2017, 9, 29, 0, 0, 0, 0, pytz.utc)
+    # Run over everything
+    liststrategy = cerebro.run()
 
-    data = web.DataReader("종가", "yahoo", start, end)
-
-    data = data[['Adj Close']]
-    data.columns = ['종가']
-    # data = data.tz_localize('UTC')
-
-    # algo = TradingAlgorithm(initialize=initialize, handle_data=handle_data)
-    # result = algo.run(data)
-    result = run_algorithm(start, end, initialize,100000000.0, handle_data,data_frequency = 'daily', data=data)
-
-    # plt.plot(result.index, result.portfolio_value)
-    # plt.show()
-
-    plt.plot(result.index, result.ma5)
-    plt.plot(result.index, result.ma20)
-    plt.legend(loc='best')
-
-    # plt.plot(result.ix[result.buy == True].index, result.ma5[result.buy == True], '^')
-    # plt.plot(result.ix[result.sell == True].index, result.ma5[result.sell == True], 'v')
-
-    plt.show()
+    # Print out the final result
+    print('Final Portfolio Value: %.2f' % cerebro.broker.getvalue())
 
 
-def temp2():
-    df = pd.read_hdf("test100.hdf", "day")
-    datelen = len(df)
-
-    # start = dt.strptime("20170101%s"%("000000"), "%Y%m%d%H%M%S").astimezone(pytz.utc)
-    # end = dt.strptime("20170410%s"%("000000"), "%Y%m%d%H%M%S").astimezone(pytz.utc)
-
-    start = dt(2017, 1, 1, 0, 0, 0, 0, pytz.utc)
-    end = dt(2017, 4, 10, 0, 0, 0, 0, pytz.utc)
-
-    # start = datetime.datetime(2017, 1, 1)
-    # end = datetime.datetime(2017, 4, 10)
-
-    # data = web.DataReader("종가", "yahoo", start, end)
-
-    # rawdata = [ aa for aa in range(datelen)]
-    rawdata = df["현재가"].tolist()
-    # daterange = pd.date_range('2017/1/1', periods=datelen)
-    daterange = pd.date_range(start, end)
-    data = pd.DataFrame(rawdata, daterange, ['종가'])
-    # data = data.tz_localize('UTC')
-
-    result = run_algorithm(start, end, initialize,100000000.0, handle_data,data_frequency = 'daily', data=data)
-
-    # algo = TradingAlgorithm(initialize=initialize, handle_data=handle_data)
-    # result = algo.run(data)
-
-    plt.plot(result.index, result.ma5)
-    plt.plot(result.index, result.ma20)
-    plt.legend(loc='best')
+    for strategytemp in liststrategy :
+        historytrades = list(list(strategytemp._trades.copy().values())[0].values())[0]
+        nstake = strategytemp.getsizer().params.stake
+        listprofitrate = []
+        for dealtemp in historytrades :
+            cost = nstake * dealtemp.price
+            netprofit = dealtemp.pnlcomm
+            listprofitrate.append(netprofit/cost)
+        print(listprofitrate)
+        print("mean:%s, std:%s" % (np.mean(listprofitrate), np.std(listprofitrate)))
 
 
-    plt.show()
+    # Plot the result
+    # cerebro.plot()
 
 
-if __name__ == "__main__" :
-    temp2()
+
