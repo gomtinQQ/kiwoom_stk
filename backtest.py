@@ -11,6 +11,7 @@ import backtrader as bt
 import pandas as pd
 import pyalgo
 import numpy as np
+from scipy.stats import norm
 
 # Create a Stratey
 class TestStrategy(bt.Strategy):
@@ -167,7 +168,8 @@ if __name__ == '__main__':
     #     reverse=False)
 
     # read and create data from 000300.hdf
-    df = pyalgo.get_dataframe_with_code("000300")
+    # df = pyalgo.get_dataframe_with_code("000300")
+    df = pd.read_hdf("000300.hdf")
     # df은 오름차순으로 되어 있다.
 
     serialdatetime = [datetime.datetime.strptime(str(bb), "%Y%m%d") for bb in df.index]
@@ -210,8 +212,12 @@ if __name__ == '__main__':
             cost = nstake * dealtemp.price
             netprofit = dealtemp.pnlcomm
             listprofitrate.append(netprofit/cost)
-        print(listprofitrate)
-        print("mean:%s, std:%s" % (np.mean(listprofitrate), np.std(listprofitrate)))
+        mean = np.mean(listprofitrate)
+        std = np.std(listprofitrate)
+        # 원래의 cost에 비해서 net-profit 의 rate 을 구하고,  이 rate의 평균과 표준분산을 구해서,
+        # 평균 얼마의 승률이 있는지 cdf을 이용해서 구한다.
+        # 승률이  50%이면 본전이므로,  최소한 > 50% 이어야 한다.
+        print("mean:%s, std:%s, profitable rate : %s" % (mean, std, 1- norm.cdf(-mean/std)))
 
 
     # Plot the result
