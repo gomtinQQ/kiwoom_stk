@@ -16,7 +16,7 @@ from pykiwoom.kiwoom import *
 import env
 import os
 import utils
-import pyalgo
+
 from  datetime import datetime
 
 
@@ -32,8 +32,8 @@ class MyWindow(QWidget):
         self.setWindowIcon(QIcon('icon.png'))
 
         # get the DataFrame for code .
-        df = pyalgo.get_dataframe_with_code(self.code)
-        self.data = pyalgo.add_이동평균선_to_dataframe(df, [5,20])
+        df = utils.get_dataframe_with_code(self.code)
+        self.data = utils.add_이동평균선_to_dataframe(df, [5,20])
 
         listcolumns = list(self.data)
         jongmok = utils.convert_code_to_종목이름(self.code, False)

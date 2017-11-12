@@ -23,7 +23,7 @@ from zipline.algorithm import TradingAlgorithm
 from zipline.utils.run_algo import run_algorithm
 import pytz
 
-import pyalgo
+import utils
 
 def initialize(context):
     context.i = 0
@@ -54,8 +54,8 @@ def handle_data(context, data):
     record(종가=data.current(context.sym, "price"), ma5=ma5, ma20=ma20, buy=buy, sell=sell)
 
 def backtest():
-    df = pyalgo.get_dataframe_with_code("005440")
-    # df = pyalgo.add_이동평균선_to_dataframe(df, [5, 20])
+    df = utils.get_dataframe_with_code("005440")
+    # df = utils.add_이동평균선_to_dataframe(df, [5, 20])
 
     # df은 오름차순으로 되어 있다.
 

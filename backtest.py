@@ -9,16 +9,19 @@ import sys  # To find out the script name (in argv[0])
 # refer to https://www.backtrader.com/docu/index.html
 import backtrader as bt
 import pandas as pd
-import pyalgo
+import utils
 import numpy as np
-from scipy.stats import norm
+from scipy.stats import norm, normaltest
 
 # Create a Stratey
 class TestStrategy(bt.Strategy):
+
     params = (
         ('maperiod5', 5),
         ('maperiod20', 20),
         ('printlog', False),
+        ('code', ""),
+        ('strfilename', ""),
     )
 
     def log(self, txt, dt=None, doprint=False):
@@ -142,84 +145,86 @@ class TestStrategy(bt.Strategy):
                 self.order = self.sell()
 
     def stop(self):
-        self.log('(MA Period %2d, %2d) Ending Value %.2f' % (self.params.maperiod5,self.params.maperiod20, self.broker.getvalue()), doprint=True)
+        try:
+
+            self.log('(MA Period %2d, %2d) Ending Value %.2f' % (self.params.maperiod5,self.params.maperiod20, self.broker.getvalue()), doprint=True)
+            historytrades = list(list(self._trades.copy().values())[0].values())[0]
+            nstake = self.getsizer().params.stake
+            listprofitrate = []
+            for dealtemp in historytrades:
+                cost = nstake * dealtemp.price
+                netprofit = dealtemp.pnlcomm
+                listprofitrate.append(netprofit / cost)
+            mean = np.mean(listprofitrate)
+            std = np.std(listprofitrate)
+            _, pvalue = normaltest(listprofitrate)
+            # 원래의 cost에 비해서 net-profit 의 rate 을 구하고,  이 rate의 평균과 표준분산을 구해서,
+            # 평균 얼마의 승률이 있는지 cdf을 이용해서 구한다.
+            # 승률이  50%이면 본전이므로,  최소한 > 50% 이어야 한다.
+            print("N:%s, mean:%s, std:%s, profitable rate : %s, p-value:%.2f" % (len(listprofitrate), mean, std, 1 - norm.cdf(-mean / std), pvalue))
+
+            f_csv = open(self.params.strfilename, "a", encoding='utf-8')
+            strcsvout = "%s,%s,%s,%s,%s,%s,%s,%s,%.2f\n"%(self.params.code,self.params.maperiod5,self.params.maperiod20,self.broker.getvalue(),len(listprofitrate), mean, std, 1 - norm.cdf(-mean / std), pvalue )
+            f_csv.write(strcsvout)
+            f_csv.close()
+        except:
+            pass
+
 
 
 if __name__ == '__main__':
-    # Create a cerebro entity
-    cerebro = bt.Cerebro()
 
-    # Add a strategy
-    cerebro.addstrategy(TestStrategy)
+    timeprev = datetime.datetime.now()
+    strfilename = "maperiod.csv"
+    if os.path.exists(strfilename) == True:
+        os.remove(strfilename)
 
-    # # Datas are in a subfolder of the samples. Need to find where the script is
-    # # because it could have been called from anywhere
-    # modpath = os.path.dirname(os.path.abspath(sys.argv[0]))
-    # datapath = os.path.join(modpath, 'orcl-1995-2014.txt')
-    #
-    # # Create a Data Feed
-    # data = bt.feeds.YahooFinanceCSVData(
-    #     dataname=datapath,
-    #     # Do not pass values before this date
-    #     fromdate=datetime.datetime(2000, 1, 1),
-    #     # Do not pass values before this date
-    #     todate=datetime.datetime(2013, 12, 31),
-    #     # Do not pass values after this date
-    #     reverse=False)
+    listcode = utils.get_list_code()
+    lencode = len(listcode)
+    countleft = lencode
+    for code in listcode:
+        print("--------------------------- %s/%s----------------------------"%(countleft,  lencode))
+        countleft -= 1
+        df = utils.get_dataframe_with_code(code)
+        cerebro = bt.Cerebro()
 
-    # read and create data from 000300.hdf
-    # df = pyalgo.get_dataframe_with_code("000300")
-    df = pd.read_hdf("000300.hdf")
-    # df은 오름차순으로 되어 있다.
+        # Add a strategy
+        # cerebro.addstrategy(TestStrategy)
+        cerebro.optstrategy(TestStrategy, maperiod5=range(5,10), maperiod20=range(10, 50), code=code, strfilename=strfilename)
 
-    serialdatetime = [datetime.datetime.strptime(str(bb), "%Y%m%d") for bb in df.index]
-    df = df.set_index(pd.DatetimeIndex(serialdatetime))
-    data = df[["현재가", "거래량", "시가", "고가", "저가"]]
-    data.columns = ['close', 'volume', 'open', 'high', 'low']
+        serialdatetime = [datetime.datetime.strptime(str(bb), "%Y%m%d") for bb in df.index]
+        df = df.set_index(pd.DatetimeIndex(serialdatetime))
+        data = df[["현재가", "거래량", "시가", "고가", "저가"]]
+        data.columns = ['close', 'volume', 'open', 'high', 'low']
 
-    data = bt.feeds.PandasData(dataname=data, timeframe=1, openinterest=None)
+        data = bt.feeds.PandasData(dataname=data, timeframe=1, openinterest=None)
 
-    # Add the Data Feed to Cerebro
-    cerebro.adddata(data)
+        # Add the Data Feed to Cerebro
+        cerebro.adddata(data)
 
-    # Set our desired cash start
-    # cash단위가 원으로 되므로  1억으로 확대한다.
-    cerebro.broker.setcash(100000000.0)
+        # Set our desired cash start
+        # cash단위가 원으로 되므로  1억으로 확대한다.
+        cerebro.broker.setcash(100000000.0)
 
-    # Add a FixedSize sizer according to the stake
-    cerebro.addsizer(bt.sizers.FixedSize, stake=10)
+        # Add a FixedSize sizer according to the stake
+        cerebro.addsizer(bt.sizers.FixedSize, stake=10)
 
-    # Set the commission
-    # 매도거래세 : 0.3%,  매도매수수수료:0.165%  -> total : 0.33%
-    # 매수 매도에 둘로 나누면, 0.165%가 된다.
-    cerebro.broker.setcommission(commission=0.00165)
+        # Set the commission
+        # 매도거래세 : 0.3%,  매도매수수수료:0.165%  -> total : 0.33%
+        # 매수 매도에 둘로 나누면, 0.165%가 된다.
+        cerebro.broker.setcommission(commission=0.00165)
 
-    # Print out the starting conditions
-    print('Starting Portfolio Value: %.2f' % cerebro.broker.getvalue())
+        # Print out the starting conditions
+        print('Starting Portfolio Value: %.2f' % cerebro.broker.getvalue())
 
-    # Run over everything
-    liststrategy = cerebro.run()
+        # Run over everything
+        listliststrategy = cerebro.run()
 
-    # Print out the final result
-    print('Final Portfolio Value: %.2f' % cerebro.broker.getvalue())
+        # Print out the final result
+        print('Final Portfolio Value: %.2f' % cerebro.broker.getvalue())
 
 
-    for strategytemp in liststrategy :
-        historytrades = list(list(strategytemp._trades.copy().values())[0].values())[0]
-        nstake = strategytemp.getsizer().params.stake
-        listprofitrate = []
-        for dealtemp in historytrades :
-            cost = nstake * dealtemp.price
-            netprofit = dealtemp.pnlcomm
-            listprofitrate.append(netprofit/cost)
-        mean = np.mean(listprofitrate)
-        std = np.std(listprofitrate)
-        # 원래의 cost에 비해서 net-profit 의 rate 을 구하고,  이 rate의 평균과 표준분산을 구해서,
-        # 평균 얼마의 승률이 있는지 cdf을 이용해서 구한다.
-        # 승률이  50%이면 본전이므로,  최소한 > 50% 이어야 한다.
-        print("mean:%s, std:%s, profitable rate : %s" % (mean, std, 1- norm.cdf(-mean/std)))
-
-
+    print("Elapse time is %s "%(datetime.datetime.now() - timeprev ))
     # Plot the result
     # cerebro.plot()
 
