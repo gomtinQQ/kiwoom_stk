@@ -2,23 +2,21 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 import datetime  # For datetime objects
-import os.path  # To manage paths
-import sys  # To find out the script name (in argv[0])
 
 # Import the backtrader platform
 import backtrader as bt
+import pandas as pd
 
 
 # Create a Stratey
 class TestStrategy(bt.Strategy):
-    params = (
-        ('maperiod', 15),
-    )
+    params = ( ('maperiod', 20), ('printlog', False), )
 
-    def log(self, txt, dt=None):
+    def log(self, txt, dt=None, doprint=False):
         ''' Logging function fot this strategy'''
-        dt = dt or self.datas[0].datetime.date(0)
-        print('%s, %s' % (dt.isoformat(), txt))
+        if self.params.printlog or doprint:
+            dt = dt or self.datas[0].datetime.date(0)
+            print('%s, %s' % (dt.isoformat(), txt))
 
     def __init__(self):
         # Keep a reference to the "close" line in the data[0] dataseries
@@ -30,18 +28,17 @@ class TestStrategy(bt.Strategy):
         self.buycomm = None
 
         # Add a MovingAverageSimple indicator
-        self.sma = bt.indicators.SimpleMovingAverage(
-            self.datas[0], period=self.params.maperiod)
+        self.smaClose = bt.indicators.SimpleMovingAverage(self.datas[0], period=5)
+        # self.smaVolume = bt.indicators.SimpleMovingAverage(self.datas[0].volume, period=self.params.maperiod)
 
         # Indicators for the plotting show
-        bt.indicators.ExponentialMovingAverage(self.datas[0], period=25)
-        bt.indicators.WeightedMovingAverage(self.datas[0], period=25,
-                                            subplot=True)
-        bt.indicators.StochasticSlow(self.datas[0])
+        # bt.indicators.ExponentialMovingAverage(self.datas[0], period=5)
+        # bt.indicators.WeightedMovingAverage(self.datas[0], period=5)
+        # bt.indicators.StochasticSlow(self.datas[0])
         bt.indicators.MACDHisto(self.datas[0])
-        rsi = bt.indicators.RSI(self.datas[0])
-        bt.indicators.SmoothedMovingAverage(rsi, period=10)
-        bt.indicators.ATR(self.datas[0], plot=False)
+        # rsi = bt.indicators.RSI(self.datas[0])
+        # bt.indicators.SmoothedMovingAverage(rsi, period=5 )
+        # bt.indicators.ATR(self.datas[0] )
 
     def notify_order(self, order):
         if order.status in [order.Submitted, order.Accepted]:
@@ -81,8 +78,18 @@ class TestStrategy(bt.Strategy):
         self.log('OPERATION PROFIT, GROSS %.2f, NET %.2f' %
                  (trade.pnl, trade.pnlcomm))
 
+    def prenext(self):
+        print('prenext:: current period:',  len(self), self.datas[0].datetime.date(0))
+        pass
+
+    def nextstart(self):
+        print('nextstart:: current period:', len(self), self.datas[0].datetime.date(0))
+        pass
+
     def next(self):
         # Simply log the closing price of the series from the reference
+        print('next:: current period:', len(self), self.datas[0].datetime.date(0))
+
         self.log('Close, %.2f' % self.dataclose[0])
 
         # Check if an order is pending ... if yes, we cannot send a 2nd one
@@ -93,7 +100,7 @@ class TestStrategy(bt.Strategy):
         if not self.position:
 
             # Not yet ... we MIGHT BUY if ...
-            if self.dataclose[0] > self.sma[0]:
+            if self.dataclose[0] > self.smaClose[0]:
 
                 # BUY, BUY, BUY!!! (with all possible default parameters)
                 self.log('BUY CREATE, %.2f' % self.dataclose[0])
@@ -103,12 +110,19 @@ class TestStrategy(bt.Strategy):
 
         else:
 
-            if self.dataclose[0] < self.sma[0]:
+            if self.dataclose[0] < self.smaClose[0]:
                 # SELL, SELL, SELL!!! (with all possible default parameters)
                 self.log('SELL CREATE, %.2f' % self.dataclose[0])
 
                 # Keep track of the created order to avoid a 2nd order
                 self.order = self.sell()
+
+    def stop(self):
+        """
+        optstrategy을 사용한다면,  각 MA Period이 끝나는 시점에서  stop()이 called 된다.
+        :return:
+        """
+        self.log('(MA Period %2d) Ending Value %.2f' % (self.params.maperiod, self.broker.getvalue()), doprint=True)
 
 
 if __name__ == '__main__':
@@ -116,34 +130,33 @@ if __name__ == '__main__':
     cerebro = bt.Cerebro()
 
     # Add a strategy
-    cerebro.addstrategy(TestStrategy)
+    bool_opti_strategy = False
+    if bool_opti_strategy :
+        strats = cerebro.optstrategy( TestStrategy, maperiod=range(10, 15))
+    else:
+        cerebro.addstrategy(TestStrategy)
 
     # Datas are in a subfolder of the samples. Need to find where the script is
-    # because it could have been called from anywhere
-    modpath = os.path.dirname(os.path.abspath(sys.argv[0]))
-    datapath = os.path.join(modpath, 'orcl-1995-2014.txt')
+    df = pd.read_hdf("000300.hdf", 'day').sort_index()
+    serialdatetime = [datetime.datetime.strptime(str(bb), "%Y%m%d") for bb in df.index]
+    df = df.set_index(pd.DatetimeIndex(serialdatetime))
+    data = df[["현재가", "거래량", "시가", "고가", "저가"]]
+    data.columns = ['close', 'volume', 'open', 'high', 'low']
 
-    # Create a Data Feed
-    data = bt.feeds.YahooFinanceCSVData(
-        dataname=datapath,
-        # Do not pass values before this date
-        fromdate=datetime.datetime(2000, 1, 1),
-        # Do not pass values before this date
-        todate=datetime.datetime(2000, 12, 31),
-        # Do not pass values after this date
-        reverse=False)
+    data = bt.feeds.PandasData(dataname=data, timeframe=1, openinterest=None)
+
 
     # Add the Data Feed to Cerebro
     cerebro.adddata(data)
 
     # Set our desired cash start
-    cerebro.broker.setcash(1000.0)
+    cerebro.broker.setcash(100000000.0)
 
     # Add a FixedSize sizer according to the stake
     cerebro.addsizer(bt.sizers.FixedSize, stake=10)
 
     # Set the commission
-    cerebro.broker.setcommission(commission=0.0)
+    cerebro.broker.setcommission(commission=0.00165)
 
     # Print out the starting conditions
     print('Starting Portfolio Value: %.2f' % cerebro.broker.getvalue())
@@ -154,5 +167,6 @@ if __name__ == '__main__':
     # Print out the final result
     print('Final Portfolio Value: %.2f' % cerebro.broker.getvalue())
 
-    # Plot the result
-    cerebro.plot()
+    # # Plot the result
+    if bool_opti_strategy == False:
+        cerebro.plot()
