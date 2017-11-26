@@ -1,0 +1,3 @@
+python backtest.py -f msVolSimSimSim_titan.csv -m averagevolume -s 0  -e 1500     # Titan
+python backtest.py -f msVolSimSimSim_hp.csv -m averagevolume -s 1500  -e 2000     # HP
+python backtest.py -f msVolSimSimSim_emmc.csv -m averagevolume -s 2000          # emmcserver
