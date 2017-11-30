@@ -12,6 +12,7 @@ import time
 
 import concurrent.futures
 import numpy as np
+import os
 
 def csvfilter_rate(clsvar):
     """
@@ -117,35 +118,13 @@ def makeHDFfromCSV(clsvar):
     print("finished...")
 
 
-def makeHDFfromCSV_process(filehdf, listlistitems) :
-    if(len(listlistitems) == 0 ) :
-        return
+def makeHDFfromCSV_process(npa, npb) :
+    print("%d is started"%(os.getpid()))
+    for i in range(10000) :
+        npa = npa * npb
 
-    listhead = ["code", "mashort", "malong", "volperiod", "volmulti", "profitrate"]
-    df = pd.DataFrame(columns=listhead)
+    print("%d is ended" % (os.getpid()))
 
-    hdfindex = 0
-    for listvalue  in listlistitems :
-        listtemp = []
-        listtemp.append(listvalue.pop(0))  # code
-        listtemp.append(int(listvalue.pop(0)))  # mashrot
-        listtemp.append(int(listvalue.pop(0)))  # malong
-        # listtemp.append(float(listvalue.pop(0)))  # lastvalue
-        # listtemp.append(int(listvalue.pop(0)))  # lenlist
-        # listtemp.append(float(listvalue.pop(0)))  # mean
-        # listtemp.append(float(listvalue.pop(0)))  # var
-        # listtemp.append(float(listvalue.pop(0)))  # cdf
-        # listtemp.append(float(listvalue.pop(0)))  # pvalue
-        listtemp.append(int(listvalue.pop(0)))  # volperiod
-        listtemp.append(float(listvalue.pop(0)))  # volmulti
-        listvalue.pop(0)  # rate
-        listtemp.append(float(listvalue.pop(0)))  # profitrate
-
-        df.loc[hdfindex] = listtemp
-        hdfindex += 1
-
-    df.to_hdf(filehdf, key="day")
-    print("new hdf file")
 
 def makeHDFfromCSV_concurrent(clsvar):
     """
@@ -155,38 +134,16 @@ def makeHDFfromCSV_concurrent(clsvar):
     :return: 
     """
 
-    fincsv = open(clsvar.filein)
-    listhead = fincsv.readline().strip().split(",")
-    listhead = ["code", "mashort", "malong", "volperiod", "volmulti", "profitrate"]
-    df = pd.DataFrame(columns=listhead)
-    csvindex = 0
-    hdfindex = 0
-
-    hdffilesufindex = 0
-    hdffilebase = clsvar.fileout.split(".")[0]
-    hdffileext = clsvar.fileout.split(".")[1]
-
     listfuture = []
-    filefinished = False
-    while(filefinished == False):
-        listlisttemp = []
-        sizelist = 0
-        while(sizelist < 200000 ) :
-            listtemp = fincsv.readline().strip().split(",")
-            if len(listtemp) == 0 :
-                filefinished = True
-                break
-            else:
-                listlisttemp.append(listtemp)
-            sizelist += 1
-        with concurrent.futures.ProcessPoolExecutor() as executor:
-            newhdffile = hdffilebase + "_%04d" % hdffilesufindex + "." + hdffileext
-            future = executor.submit(makeHDFfromCSV_process, newhdffile,listlisttemp )
-            listfuture.append(future)
-            hdffilesufindex += 1
 
-        csvindex += sizelist
-        print("csvindex = %d"%csvindex)
+
+    # with 구문안에서 해야만 제대로 multi process가 된다.
+    with concurrent.futures.ProcessPoolExecutor() as executor:
+        for i in range(100):
+            npa = np.random.rand(50,100,100)
+            npb = np.random.rand(50,100,100)
+            future = executor.submit(makeHDFfromCSV_process, npa,npb )
+            listfuture.append(future)
 
     # check if process is finished.
     while(True):
@@ -200,10 +157,9 @@ def makeHDFfromCSV_concurrent(clsvar):
 
 def makeMatrixSumToTxt(clsvar):
     """
-    head : code,mashort,malong,volperiod,volmulti,rate,profitrate 을 가진 CSV file을
-    hdf 으로 만들어 저장한다.
+    mashort, malong, volperiod, volmulti, profitrate 의 5개 항목을  numpy에 넣어서
+    mean을 구하고, 파일으로 출력한다.
 
-    csv file size가 너무 크면, 이를  200000 건으로 분리해서 저장한다.
     :param clsvar:
     :return:
 
@@ -222,12 +178,12 @@ def makeMatrixSumToTxt(clsvar):
     npcount = np.zeros((len(indexvolp), len(indexvolm), len(indexlong), len(indexshort)))
 
 
-    fincsv = open(clsvar.filein)
-    listhead = fincsv.readline().strip().split(",")
+    fin = open(clsvar.filein)
+    listhead = fin.readline().strip().split(",")
     listhead = ["code", "mashort", "malong", "volperiod", "volmulti", "profitrate"]
 
     cvsindex = 0
-    for line in fincsv:
+    for line in fin:
         code, mashort, malong, volperiod, volmulti, rate, profitrate = line.strip().split(",")
         mashort = int(mashort)
         malong = int(malong)
@@ -238,16 +194,42 @@ def makeMatrixSumToTxt(clsvar):
         npsum[indexvolp[volperiod], indexvolm[volmulti], indexlong[malong],indexshort[mashort]  ] += profitrate
         npcount[indexvolp[volperiod], indexvolm[volmulti], indexlong[malong], indexshort[mashort]] += 1
         cvsindex += 1
-        print("cvsindex = %d"% cvsindex)
+        if (cvsindex % 10000) == 0 :
+            print("csvindex = %d"% cvsindex)
 
+    fin.close()
     npmean = npsum / npcount
 
-    open(clsvar.fileout, "w").write(str(npmean))
+    # open(clsvar.fileout, "w").write(str(npmean))
+    fout = open(clsvar.fileout, "w")
+
+    #write head to file
+    listhead = ["volperiod", "volmulti", "malong", "mashort", "profitrate", "category"]
+    fout.write( ",".join(listhead) + "\n" )
 
 
+    indexshort = dict(zip(range(len(range(9, 15))), range(9, 15) ))
+    indexlong = dict(zip(range(len(range(41, 50))), range(41, 50) ))
+    indexvolm = dict(zip(range(len(listvolmulti)), listvolmulti ))
+    indexvolp = dict(zip(range(len(listvolperoid)), listvolperoid ))
 
+    for indexp in range(len(indexvolp )) :
+        for indexm in range(len(indexvolm)) :
+            for indexl in range(len(indexlong)) :
+                for indexs in range(len(indexshort)) :
+                    fout.write("%d,%.2f,%d,%d,%.5f,profitmean\n"%(
+                        indexvolp[indexp],indexvolm[indexm], indexlong[indexl], indexshort[indexs],
+                        npmean[indexp,indexm,indexl,indexs]  ) )
 
+    for indexp in range(len(indexvolp)):
+        for indexm in range(len(indexvolm)):
+            for indexl in range(len(indexlong)):
+                for indexs in range(len(indexshort)):
+                    fout.write("%d,%.2f,%d,%d,%.5f,profitcount\n" % (
+                    indexvolp[indexp], indexvolm[indexm], indexlong[indexl], indexshort[indexs],
+                    npcount[indexp, indexm, indexl, indexs]))
 
+    fout.close()
 
 if __name__ == "__main__":
     cmdlineopt = argparse.ArgumentParser(description='filter row data from csv file ')
@@ -257,5 +239,5 @@ if __name__ == "__main__":
     clsvar = cmdlineopt.parse_args()
     # makeHDFfromCSV(clsvar)
     # csvfilter_rate(clsvar)
-    # makeHDFfromCSV_concurrent(clsvar)
-    makeMatrixSumToTxt(clsvar)
+    makeHDFfromCSV_concurrent(clsvar)
+    # makeMatrixSumToTxt(clsvar)
