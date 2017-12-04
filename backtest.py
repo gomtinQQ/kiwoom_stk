@@ -485,9 +485,9 @@ def backtracer_MovingAverage_Volume(strfilename,listcode):
 
             # Add a strategy
             # 1차 Try하기.
-            cerebro.optstrategy(Strategy_ma5_ma20_VolumeAverageMethod, maPeriodShort=range(9,15), maPeriodLong=range(41, 50),
-                                code=code, strfilename=strfilename, MovingAverageMethodShort="SimpleMovingAverage", MovingAverageMethodLong="SimpleMovingAverage",
-                                MovingAverageVolume="SimpleMovingAverage", VolumeMultiple=[1.5, 2, 3, 4, 5, 8, 10, 15, 20], maVolPeriod=[30,40,50,60])
+            # cerebro.optstrategy(Strategy_ma5_ma20_VolumeAverageMethod, maPeriodShort=range(9,15), maPeriodLong=range(41, 50),
+            #                     code=code, strfilename=strfilename, MovingAverageMethodShort="SimpleMovingAverage", MovingAverageMethodLong="SimpleMovingAverage",
+            #                     MovingAverageVolume="SimpleMovingAverage", VolumeMultiple=[1.5, 2, 3, 4, 5, 8, 10, 15, 20], maVolPeriod=[30,40,50,60])
 
             # 위의 simulation에서 결론은  최고의 수익률이 0.055 정도의 평균수익률이 나왔다.
             # 수익률 대비 가능한  변수 범위를 아래와 같이 정하고 추가 simulation을 진행한다.
