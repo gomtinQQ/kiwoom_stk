@@ -155,8 +155,9 @@ def makeHDFfromCSV_concurrent(clsvar):
         time.sleep(30)
 
 
-def makeMatrixSumToTxt(clsvar):
+def CalMeanToCSV_try1(clsvar):
     """
+    종가이평선 2개, 거래량 이평선 2개에 의한  profitrate을 평균내여 fileout 에 csv format으로 저장한다.  
     mashort, malong, volperiod, volmulti, profitrate 의 5개 항목을  numpy에 넣어서
     mean을 구하고, 파일으로 출력한다.
 
@@ -231,6 +232,88 @@ def makeMatrixSumToTxt(clsvar):
 
     fout.close()
 
+
+def CalMeanToCSV_try2(clsvar):
+    """
+    종가이평선 2개, 거래량 이평선 2개에 의한  profitrate을 평균내여 fileout 에 csv format으로 저장한다.  
+    mashort, malong, volperiod, volmulti, profitrate 의 5개 항목을  numpy에 넣어서
+    mean을 구하고, 파일으로 출력한다.
+
+    :param clsvar:
+    :return:
+
+    maPeriodShort=[11,12,13,15,17,19,21], maPeriodLong=[47,49,51,53,55,57,9],
+    VolumeMultiple=[15,17,19,21,23,25,30], maVolPeriod=[29,31,33,35,37,39,41,43,45,47]
+    """
+    listPeriodShort = [11, 12, 13, 15, 17, 19, 21]
+    listPeriodLong = [47, 49, 51, 53, 55, 57, 9]
+    listvolmulti = [15,17,19,21,23,25,30]
+    listvolperoid = [29,31,33,35,37,39,41,43,45,47]
+
+    indexshort = dict(zip(listPeriodShort, range(len(listPeriodShort))))
+    indexlong = dict(zip(listPeriodLong, range(len(listPeriodLong))))
+    indexvolm = dict(zip(listvolmulti, range(len(listvolmulti))))
+    indexvolp = dict(zip(listvolperoid, range(len(listvolperoid))))
+
+    npsum = np.zeros((len(indexvolp), len(indexvolm),len(indexlong),len(indexshort)))
+    npcount = np.zeros((len(indexvolp), len(indexvolm), len(indexlong), len(indexshort)))
+
+
+    fin = open(clsvar.filein)
+    listhead = fin.readline().strip().split(",")
+    listhead = ["code", "mashort", "malong", "volperiod", "volmulti", "profitrate"]
+
+    cvsindex = 0
+    for line in fin:
+        code, mashort, malong, volperiod, volmulti, rate, profitrate = line.strip().split(",")
+        mashort = int(mashort)
+        malong = int(malong)
+        volperiod = int(volperiod)
+        volmulti = int(volmulti)
+        profitrate = float(profitrate)
+
+        npsum[indexvolp[volperiod], indexvolm[volmulti], indexlong[malong],indexshort[mashort]  ] += profitrate
+        npcount[indexvolp[volperiod], indexvolm[volmulti], indexlong[malong], indexshort[mashort]] += 1
+        cvsindex += 1
+        if (cvsindex % 10000) == 0 :
+            print("csvindex = %d"% cvsindex)
+
+    fin.close()
+    npmean = npsum / npcount
+
+    # open(clsvar.fileout, "w").write(str(npmean))
+    fout = open(clsvar.fileout, "w")
+
+    #write head to file
+    listhead = ["volperiod", "volmulti", "malong", "mashort", "profitrate", "category"]
+    fout.write( ",".join(listhead) + "\n" )
+
+    indexshort = dict(zip(range(len(listPeriodShort)), listPeriodShort ))
+    indexlong = dict(zip(range(len(listPeriodLong)), listPeriodLong ))
+    indexvolm = dict(zip(range(len(listvolmulti)), listvolmulti ))
+    indexvolp = dict(zip(range(len(listvolperoid)), listvolperoid ))
+
+
+
+    for indexp in range(len(indexvolp )) :
+        for indexm in range(len(indexvolm)) :
+            for indexl in range(len(indexlong)) :
+                for indexs in range(len(indexshort)) :
+                    fout.write("%d,%.2f,%d,%d,%.5f,profitmean\n"%(
+                        indexvolp[indexp],indexvolm[indexm], indexlong[indexl], indexshort[indexs],
+                        npmean[indexp,indexm,indexl,indexs]  ) )
+
+    for indexp in range(len(indexvolp)):
+        for indexm in range(len(indexvolm)):
+            for indexl in range(len(indexlong)):
+                for indexs in range(len(indexshort)):
+                    fout.write("%d,%.2f,%d,%d,%.5f,profitcount\n" % (
+                    indexvolp[indexp], indexvolm[indexm], indexlong[indexl], indexshort[indexs],
+                    npcount[indexp, indexm, indexl, indexs]))
+
+    fout.close()
+
+
 if __name__ == "__main__":
     cmdlineopt = argparse.ArgumentParser(description='filter row data from csv file ')
     cmdlineopt.add_argument('-i', action="store", dest="filein", default='filein.csv', help='CSV fileanme to input')
@@ -239,5 +322,6 @@ if __name__ == "__main__":
     clsvar = cmdlineopt.parse_args()
     # makeHDFfromCSV(clsvar)
     # csvfilter_rate(clsvar)
-    makeHDFfromCSV_concurrent(clsvar)
-    # makeMatrixSumToTxt(clsvar)
+    # makeHDFfromCSV_concurrent(clsvar)
+    # CalMeanToCSV_try1(clsvar)
+    CalMeanToCSV_try2(clsvar)
