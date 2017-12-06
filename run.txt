@@ -1,3 +1,3 @@
-python backtest.py -f macd_titan.csv -m macd -s 0  -e 1500     # Titan
-python backtest.py -f macd_hp.csv -m macd -s 1500     # HP
-python backtest.py -f macd_emmc.csv -m macd -s 2000          # emmcserver
+python backtest.py -f ma5vol_titan.csv -m avg5volume -s 0  -e 1500     # Titan
+python backtest.py -f ma5vol_hp.csv -m avg5volume -s 1500     # HP
+python backtest.py -f ma5vol_emmc.csv -m avg5volume -s 2000          # emmcserver

@@ -155,7 +155,7 @@ def makeHDFfromCSV_concurrent(clsvar):
         time.sleep(30)
 
 
-def CalMeanToCSV_try1(clsvar):
+def CalMeanToCSV_VolSimple_try1(clsvar):
     """
     종가이평선 2개, 거래량 이평선 2개에 의한  profitrate을 평균내여 fileout 에 csv format으로 저장한다.  
     mashort, malong, volperiod, volmulti, profitrate 의 5개 항목을  numpy에 넣어서
@@ -233,7 +233,7 @@ def CalMeanToCSV_try1(clsvar):
     fout.close()
 
 
-def CalMeanToCSV_try2(clsvar):
+def CalMeanToCSV_VolSimple_try2(clsvar):
     """
     종가이평선 2개, 거래량 이평선 2개에 의한  profitrate을 평균내여 fileout 에 csv format으로 저장한다.  
     mashort, malong, volperiod, volmulti, profitrate 의 5개 항목을  numpy에 넣어서
@@ -314,6 +314,80 @@ def CalMeanToCSV_try2(clsvar):
     fout.close()
 
 
+def CalMeanToCSV_MACD_try1(clsvar):
+    """
+
+    :param clsvar:
+    :return:
+
+    maPeriodShort=range(9,15), maPeriodLong=range(41, 50),
+    VolumeMultiple=[1.5, 2, 3, 4, 5, 8, 10, 15, 20], maVolPeriod=[30,40,50,60]
+    """
+    listmacd1 = [8, 10, 12, 14, 16, 18]
+    listmacd2 = [20, 22, 24, 26, 28, 30, 32]
+    listmacdsig = [6, 7, 8, 9, 10, 11, 12, 13]
+
+    indexmacd1 = dict(zip(listmacd1, range(len(listmacd1))))
+    indexmacd2 = dict(zip(listmacd2, range(len(listmacd2))))
+    indexmacdsig = dict(zip(listmacdsig, range(len(listmacdsig))))
+
+
+    npsum = np.zeros((len(indexmacd1), len(indexmacd2),len(indexmacdsig)))
+    npcount = np.zeros((len(indexmacd1), len(indexmacd2), len(indexmacdsig)))
+
+
+    fin = open(clsvar.filein)
+    # listhead = fin.readline().strip().split(",")
+    # listhead = ["code", "mashort", "malong", "volperiod", "volmulti", "profitrate"]
+
+    cvsindex = 0
+    for line in fin:
+        code, macd1, macd2, macdsig, rate, profitrate, *lista = line.strip().split(",")
+        if rate == "sum" :
+            continue
+        macd1 = int(macd1)
+        macd2 = int(macd2)
+        macdsig = int(macdsig)
+        profitrate = float(profitrate)
+
+        npsum[indexmacd1[macd1], indexmacd2[macd2], indexmacdsig[macdsig] ] += profitrate
+        npcount[indexmacd1[macd1], indexmacd2[macd2], indexmacdsig[macdsig]] += 1
+        cvsindex += 1
+        if (cvsindex % 10000) == 0 :
+            print("csvindex = %d"% cvsindex)
+
+    fin.close()
+    npmean = npsum / npcount
+
+    fout = open(clsvar.fileout, "w")
+
+    #write head to file
+    listhead = ["macd1", "macd2", "macdsig", "meanprofitrate", "category"]
+    fout.write( ",".join(listhead) + "\n" )
+
+
+    indexmacd1 = dict(zip(range(len(listmacd1)), listmacd1 ))
+    indexmacd2 = dict(zip(range(len(listmacd2)), listmacd2 ))
+    indexmacdsig = dict(zip(range(len(listmacdsig)), listmacdsig ))
+
+
+
+    for index1 in range(len(indexmacd1 )) :
+        for index2 in range(len(indexmacd2)) :
+            for indexs in range(len(indexmacdsig)) :
+                fout.write("%d,%d,%d,%.5f,meanprofit\n"%(
+                    indexmacd1[index1],indexmacd2[index2], indexmacdsig[indexs],
+                    npmean[index1,index2,indexs]  ) )
+
+    for index1 in range(len(indexmacd1 )) :
+        for index2 in range(len(indexmacd2)) :
+            for indexs in range(len(indexmacdsig)) :
+                fout.write("%d,%d,%d,%.5f,countprofit\n"%(
+                    indexmacd1[index1],indexmacd2[index2], indexmacdsig[indexs],
+                    npcount[index1,index2,indexs]  ) )
+
+    fout.close()
+
 if __name__ == "__main__":
     cmdlineopt = argparse.ArgumentParser(description='filter row data from csv file ')
     cmdlineopt.add_argument('-i', action="store", dest="filein", default='filein.csv', help='CSV fileanme to input')
@@ -324,4 +398,4 @@ if __name__ == "__main__":
     # csvfilter_rate(clsvar)
     # makeHDFfromCSV_concurrent(clsvar)
     # CalMeanToCSV_try1(clsvar)
-    CalMeanToCSV_try2(clsvar)
+    CalMeanToCSV_MACD_try1(clsvar)
