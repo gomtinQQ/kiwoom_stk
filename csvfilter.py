@@ -14,6 +14,8 @@ import concurrent.futures
 import numpy as np
 import os
 
+
+
 def csvfilter_rate(clsvar):
     """
     clsvar.filein 에서 "rate" 이 있는 row만  clsvar.fileout 에 저장
@@ -388,14 +390,78 @@ def CalMeanToCSV_MACD_try1(clsvar):
 
     fout.close()
 
+def CalMeanWithDict3(clsvar):
+    fin = open(clsvar.filein)
+    fout = open(clsvar.fileout, "w")
+
+    if clsvar.headexist :
+        fin.readline()
+
+    dictsumcount = collections.defaultdict(lambda : [0,0])
+    count = 0
+    for line in fin :
+        code, aa1, aa2, aa3, rate, profit = line.strip().split(",")
+        dictsumcount[(aa1, aa2, aa3)][0] += float(profit)
+        dictsumcount[(aa1, aa2, aa3)][1] += 1
+
+        count += 1
+        if (count % 1000) == 0 :
+            print("reading count = %d"%count)
+
+    # write out
+    for aas  in dictsumcount.keys() :
+        aa1, aa2, aa3 = aas
+        sum, count  = dictsumcount[aas]
+        fout.write("%s,%s,%s,%.5f\n"%(aa1,aa2,aa3,sum/count))
+
+
+    fin.close()
+    fout.close()
+
+def CalMeanWithDict4(clsvar):
+    fin = open(clsvar.filein)
+    fout = open(clsvar.fileout, "w")
+
+    if clsvar.headexist :
+        fin.readline()
+
+    dictsumcount = collections.defaultdict(lambda : [0,0])
+    count = 0
+    for line in fin :
+        code, aa1, aa2, aa3, aa4, rate, profit = line.strip().split(",")
+        dictsumcount[(aa1, aa2, aa3, aa4)][0] += float(profit)
+        dictsumcount[(aa1, aa2, aa3, aa4)][1] += 1
+
+        count += 1
+        if (count % 1000) == 0 :
+            print("reading count = %d"%count)
+
+    # write out
+    for aas  in dictsumcount.keys() :
+        aa1, aa2, aa3, aa4 = aas
+        sum, count  = dictsumcount[aas]
+        fout.write("%s,%s,%s,%s,%.5f\n"%(aa1,aa2,aa3,aa4,sum/count))
+
+
+    fin.close()
+    fout.close()
+
 if __name__ == "__main__":
     cmdlineopt = argparse.ArgumentParser(description='filter row data from csv file ')
     cmdlineopt.add_argument('-i', action="store", dest="filein", default='filein.csv', help='CSV fileanme to input')
     cmdlineopt.add_argument('-o', action="store", dest="fileout",  default='fileout.csv', help='CSV fileanme to output')
+    cmdlineopt.add_argument('-p', action="store", dest="paramcount", default=3, type=int,     help='parameter count')
+    cmdlineopt.add_argument('-1', action="store_true", dest="headexist", default=False, help='parameter count')
 
     clsvar = cmdlineopt.parse_args()
+
+
     # makeHDFfromCSV(clsvar)
     # csvfilter_rate(clsvar)
     # makeHDFfromCSV_concurrent(clsvar)
     # CalMeanToCSV_try1(clsvar)
-    CalMeanToCSV_MACD_try1(clsvar)
+    # CalMeanToCSV_MACD_try1(clsvar)
+    if clsvar.paramcount == 3 :
+        CalMeanWithDict3(clsvar)
+    elif clsvar.paramcount == 4 :
+        CalMeanWithDict4(clsvar)
